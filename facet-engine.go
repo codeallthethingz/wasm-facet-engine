@@ -37,7 +37,7 @@ func getAtPath(data map[string]interface{}, path []string) interface{} {
 // facetPaths is a query of which facets in the data to use to create facets.
 func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
 	facetGroups := map[string]*FacetGroup{}
-	genericObjects := []map[string]interface{}{}
+	var genericObjects []map[string]interface{}
 	err := json.Unmarshal([]byte(jsonData), &genericObjects)
 	if err != nil {
 		return nil, err
@@ -46,32 +46,13 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 	for _, genericObject := range genericObjects {
 
 		arrayPaths := strings.Split(facetPath.ArrayDotNotation, ".")
-		resultingObject := genericObject
-		arraysObject := []interface{}{}
-		for i, path := range arrayPaths {
-			if i == len(arrayPaths)-1 {
-				arraysObject = getArrays(resultingObject, path)
-				break
-			}
-			resultingObject = getSubObject(resultingObject, path)
-		}
-
 		namePaths := strings.Split(facetPath.NameFieldDotNotation, ".")
 		nameMetaPaths := strings.Split(facetPath.NameMetaDotNotation, ".")
+		arraysObject := getAtPath(genericObject, arrayPaths).([]interface{})
 		for _, object := range arraysObject {
 			o := object.(map[string]interface{})
 			name := getAtPath(o, namePaths).(string)
 			nameMeta := getAtPath(o, nameMetaPaths).(string)
-
-			resultingObject = object.(map[string]interface{})
-
-			for i, path := range nameMetaPaths {
-				if i == len(nameMetaPaths)-1 {
-					nameMeta = getString(resultingObject, path)
-					break
-				}
-				resultingObject = getSubObject(resultingObject, path)
-			}
 
 			key := fmt.Sprintf("%s (%s)", name, nameMeta)
 			fmt.Println(key)
@@ -85,16 +66,8 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 				fmt.Println("facet group already exist")
 			}
 
-			values := map[string]string{}
-			resultingObject = object.(map[string]interface{})
 			valuePaths := strings.Split(facetPath.ValueMapDotNotation, ".")
-			for i, path := range valuePaths {
-				if i == len(valuePaths)-1 {
-					values = getMap(resultingObject, path)
-					break
-				}
-				resultingObject = getSubObject(resultingObject, path)
-			}
+			values := getAtPath(o, valuePaths).(map[string]interface{})
 			for k, v := range values {
 				facet, ok := facetGroups[key].Facets[k]
 				if ok {
@@ -106,35 +79,10 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 						Values: NewSet(),
 					}
 				}
-				facetGroups[key].Facets[k].Values.Add(v)
+				facetGroups[key].Facets[k].Values.Add(v.(string))
 			}
 		}
 	}
 
 	return facetGroups, nil
-}
-
-func getMap(object map[string]interface{}, path string) map[string]string {
-	thing := object[path]
-	values := map[string]string{}
-	for key, value := range thing.(map[string]interface{}) {
-		strKey := fmt.Sprintf("%v", key)
-		strValue := fmt.Sprintf("%v", value)
-
-		values[strKey] = strValue
-	}
-	return values
-}
-
-func getSubObject(object map[string]interface{}, path string) map[string]interface{} {
-	thing := object[path]
-	return thing.(map[string]interface{})
-}
-func getArrays(object map[string]interface{}, path string) []interface{} {
-	thing := object[path]
-	return thing.([]interface{})
-}
-func getString(object map[string]interface{}, path string) string {
-	thing := object[path]
-	return thing.(string)
 }
