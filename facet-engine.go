@@ -26,6 +26,13 @@ type FacetPath struct {
 	ValueMapDotNotation  string
 }
 
+func getAtPath(data map[string]interface{}, path []string) interface{} {
+	if len(path) == 1 {
+		return data[path[0]]
+	}
+	return getAtPath(data[path[0]].(map[string]interface{}), path[1:])
+}
+
 // CreateFacets take an json string representation of an array of objects and turn them in to facets.
 // facetPaths is a query of which facets in the data to use to create facets.
 func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
@@ -48,22 +55,16 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 			}
 			resultingObject = getSubObject(resultingObject, path)
 		}
+
+		namePaths := strings.Split(facetPath.NameFieldDotNotation, ".")
+		nameMetaPaths := strings.Split(facetPath.NameMetaDotNotation, ".")
 		for _, object := range arraysObject {
+			o := object.(map[string]interface{})
+			name := getAtPath(o, namePaths).(string)
+			nameMeta := getAtPath(o, nameMetaPaths).(string)
 
-			name := ""
 			resultingObject = object.(map[string]interface{})
-			namePaths := strings.Split(facetPath.NameFieldDotNotation, ".")
-			for i, path := range namePaths {
-				if i == len(namePaths)-1 {
-					name = getString(resultingObject, path)
-					break
-				}
-				resultingObject = getSubObject(resultingObject, path)
-			}
 
-			nameMeta := ""
-			resultingObject = object.(map[string]interface{})
-			nameMetaPaths := strings.Split(facetPath.NameMetaDotNotation, ".")
 			for i, path := range nameMetaPaths {
 				if i == len(nameMetaPaths)-1 {
 					nameMeta = getString(resultingObject, path)
