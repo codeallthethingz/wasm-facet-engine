@@ -17,6 +17,16 @@ func TestBadPath(t *testing.T) {
 		panic(err)
 	}
 	require.Equal(t, 0, len(facets))
+	facets, err = CreateFacets("["+object7+"]", &FacetPath{
+		ArrayDotNotation:     "bounds",
+		NameFieldDotNotation: "name",
+		NameMetaDotNotation:  "boundingType.name",
+		ValueMapDotNotation:  "container.boundingType.measurements",
+	})
+	if err != nil {
+		panic(err)
+	}
+	require.Equal(t, 0, len(facets))
 }
 func TestMissingMetaName(t *testing.T) {
 	facets, err := CreateFacets("["+object6+"]", &FacetPath{
