@@ -81,7 +81,7 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 					Facets: map[string]*Facet{},
 				}
 			} else {
-				fmt.Println("facet group alerady exist")
+				fmt.Println("facet group already exist")
 			}
 
 			values := map[string]string{}
