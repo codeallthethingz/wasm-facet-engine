@@ -30,6 +30,10 @@ type FacetPath struct {
 // facetPaths is a query of which facets in the data to use to create facets.
 func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
 	facetGroups := map[string]*FacetGroup{}
+
+	if strings.TrimSpace(jsonData) == "" {
+		return facetGroups, nil
+	}
 	genericObjects := []map[string]interface{}{}
 	err := json.Unmarshal([]byte(jsonData), &genericObjects)
 	if err != nil {
@@ -72,18 +76,6 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 				resultingObject = getSubObject(resultingObject, path)
 			}
 
-			key := fmt.Sprintf("%s (%s)", name, nameMeta)
-			fmt.Println(key)
-			if _, ok := facetGroups[key]; !ok {
-				fmt.Println("creating new facetGroup")
-				facetGroups[key] = &FacetGroup{
-					Name:   key,
-					Facets: map[string]*Facet{},
-				}
-			} else {
-				fmt.Println("facet group alerady exist")
-			}
-
 			values := map[string]string{}
 			resultingObject = object.(map[string]interface{})
 			valuePaths := strings.Split(facetPath.ValueMapDotNotation, ".")
@@ -94,18 +86,35 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 				}
 				resultingObject = getSubObject(resultingObject, path)
 			}
+
+			key := strings.ToLower(fmt.Sprintf("%s (%s)", name, nameMeta))
+			fmt.Println(key)
+			if len(values) == 0 || strings.TrimSpace(name) == "" || strings.TrimSpace(nameMeta) == "" {
+				continue
+			}
+			if _, ok := facetGroups[key]; !ok {
+				fmt.Println("creating new facetGroup")
+				facetGroups[key] = &FacetGroup{
+					Name:   key,
+					Facets: map[string]*Facet{},
+				}
+			} else {
+				fmt.Println("facet group alerady exist")
+			}
+
 			for k, v := range values {
-				facet, ok := facetGroups[key].Facets[k]
+				facetKey := strings.ToLower(k)
+				facet, ok := facetGroups[key].Facets[facetKey]
 				if ok {
-					fmt.Printf("adding new value: %v, %s, %s\n", facet.Values, k, v)
+					fmt.Printf("adding new value: %v, %s, %s\n", facet.Values, facetKey, v)
 				} else {
-					fmt.Printf("creating new value: %s, %s\n", k, v)
-					facetGroups[key].Facets[k] = &Facet{
-						Name:   k,
+					fmt.Printf("creating new value: %s, %s\n", facetKey, v)
+					facetGroups[key].Facets[facetKey] = &Facet{
+						Name:   facetKey,
 						Values: NewSet(),
 					}
 				}
-				facetGroups[key].Facets[k].Values.Add(v)
+				facetGroups[key].Facets[facetKey].Values.Add(v)
 			}
 		}
 	}
@@ -127,13 +136,22 @@ func getMap(object map[string]interface{}, path string) map[string]string {
 
 func getSubObject(object map[string]interface{}, path string) map[string]interface{} {
 	thing := object[path]
+	if thing == nil {
+		return nil
+	}
 	return thing.(map[string]interface{})
 }
 func getArrays(object map[string]interface{}, path string) []interface{} {
 	thing := object[path]
+	if thing == nil {
+		return nil
+	}
 	return thing.([]interface{})
 }
 func getString(object map[string]interface{}, path string) string {
 	thing := object[path]
+	if thing == nil {
+		return ""
+	}
 	return thing.(string)
 }
