@@ -37,6 +37,10 @@ func getAtPath(data map[string]interface{}, path []string) interface{} {
 // facetPaths is a query of which facets in the data to use to create facets.
 func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
 	facetGroups := map[string]*FacetGroup{}
+
+	if strings.TrimSpace(jsonData) == "" {
+		return facetGroups, nil
+	}
 	var genericObjects []map[string]interface{}
 	err := json.Unmarshal([]byte(jsonData), &genericObjects)
 	if err != nil {
@@ -53,9 +57,13 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 			o := object.(map[string]interface{})
 			name := getAtPath(o, namePaths).(string)
 			nameMeta := getAtPath(o, nameMetaPaths).(string)
-
-			key := fmt.Sprintf("%s (%s)", name, nameMeta)
+			valuePaths := strings.Split(facetPath.ValueMapDotNotation, ".")
+			values := toStringMap(getAtPath(o, valuePaths).(map[string]interface{}))
+			key := strings.ToLower(fmt.Sprintf("%s (%s)", name, nameMeta))
 			fmt.Println(key)
+			if len(values) == 0 || strings.TrimSpace(name) == "" || strings.TrimSpace(nameMeta) == "" {
+				continue
+			}
 			if _, ok := facetGroups[key]; !ok {
 				fmt.Println("creating new facetGroup")
 				facetGroups[key] = &FacetGroup{
@@ -66,20 +74,19 @@ func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup
 				fmt.Println("facet group already exist")
 			}
 
-			valuePaths := strings.Split(facetPath.ValueMapDotNotation, ".")
-			values := getAtPath(o, valuePaths).(map[string]interface{})
 			for k, v := range values {
-				facet, ok := facetGroups[key].Facets[k]
+				facetKey := strings.ToLower(k)
+				facet, ok := facetGroups[key].Facets[facetKey]
 				if ok {
-					fmt.Printf("adding new value: %v, %s, %s\n", facet.Values, k, v)
+					fmt.Printf("adding new value: %v, %s, %s\n", facet.Values, facetKey, v)
 				} else {
-					fmt.Printf("creating new value: %s, %s\n", k, v)
-					facetGroups[key].Facets[k] = &Facet{
-						Name:   k,
+					fmt.Printf("creating new value: %s, %s\n", facetKey, v)
+					facetGroups[key].Facets[facetKey] = &Facet{
+						Name:   facetKey,
 						Values: NewSet(),
 					}
 				}
-				facetGroups[key].Facets[k].Values.Add(v.(string))
+				facetGroups[key].Facets[facetKey].Values.Add(v)
 			}
 		}
 	}
