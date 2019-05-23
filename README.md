@@ -62,12 +62,17 @@ The return map of FacetGroups will have the following structure (json marshalled
 
 ```json
 {
-  "area (cube)": {
-    "Name": "area (cube)",
-    "Facets": {
-      "side": {
-        "Name": "side",
-        "Values": ["10", "20"]
+  "FacetGroup": {
+    "area (cube)": {
+      "Name": "area (cube)",
+      "Facets": {
+        "side": {
+          "Name": "side",
+          "Values": [
+            "10",
+            "20"
+          ]
+        }
       }
     }
   }

@@ -2,11 +2,29 @@ package engine
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestQuery(t *testing.T) {
+	facetGroups, err := CreateFacetGroups(readmeExample, &FacetPath{
+		ArrayDotNotation:     "measurements",
+		NameFieldDotNotation: "measurementName",
+		NameMetaDotNotation:  "metrics.metricName",
+		ValueMapDotNotation:  "metrics.measurements",
+	})
+	if err != nil {
+		panic(err)
+	}
+	query := &Query{}
+	query.AddFilter("area (cube)", "side", Inclusive(8), Exclusive(12))
+	listOfIds, err := facetGroups.query(query)
+	if err != nil {
+		panic(err)
+	}
+	require.Equal(t, []string{"record 1"}, listOfIds)
+}
 
 func TestForIds(t *testing.T) {
 	_, err := CreateFacetGroups("["+object8+"]", &FacetPath{
@@ -30,12 +48,9 @@ func TestOptionalMetaName(t *testing.T) {
 	// TODO
 }
 
-func TestQuery(t *testing.T) {
-	// TODO
-}
-
 func TestQueryEdges(t *testing.T) {
 	// TODO
+	t.Fail()
 }
 
 func TestUnmarshalSet(t *testing.T) {
@@ -58,7 +73,7 @@ func TestMarshalSet(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, strings.ReplaceAll("{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}}", "\t", "  "), string(data))
+	require.Equal(t, "{\"FacetGroup\":{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}}}", string(data))
 	decoded := map[string]*FacetGroup{}
 	err = json.Unmarshal(data, &decoded)
 	if err != nil {
@@ -77,7 +92,7 @@ func TestBadPath(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facetGroups))
+	require.Equal(t, 0, facetGroups.Len())
 	facetGroups, err = CreateFacetGroups("["+object7+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
@@ -87,7 +102,7 @@ func TestBadPath(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facetGroups))
+	require.Equal(t, 0, facetGroups.Len())
 }
 func TestMissingMetaName(t *testing.T) {
 	facetGroups, err := CreateFacetGroups("["+object6+"]", &FacetPath{
@@ -99,7 +114,7 @@ func TestMissingMetaName(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facetGroups))
+	require.Equal(t, 0, facetGroups.Len())
 }
 func TestMissingName(t *testing.T) {
 	facetGroups, err := CreateFacetGroups("["+object6+"]", &FacetPath{
@@ -111,7 +126,7 @@ func TestMissingName(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facetGroups))
+	require.Equal(t, 0, facetGroups.Len())
 }
 func TestNoValues(t *testing.T) {
 	facetGroups, err := CreateFacetGroups("["+object5+"]", &FacetPath{
@@ -123,7 +138,7 @@ func TestNoValues(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facetGroups))
+	require.Equal(t, 0, facetGroups.Len())
 }
 func TestDots(t *testing.T) {
 
@@ -136,8 +151,8 @@ func TestDots(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 1, len(facetGroups))
-	require.Equal(t, 3, len(facetGroups["total-area (hex-cylinder)"].Facets))
+	require.Equal(t, 1, facetGroups.Len())
+	require.Equal(t, 3, len(facetGroups.Get("total-area (hex-cylinder)").Facets))
 }
 
 func TestCreateFacets(t *testing.T) {
@@ -151,13 +166,13 @@ func TestCreateFacets(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 3, len(facetGroups))
-	require.Equal(t, 3, len(facetGroups["total-area (hex-cylinder)"].Facets))
-	require.ElementsMatch(t, []string{"15", "16"}, facetGroups["total-area (hex-cylinder)"].Facets["diameter"].Values.ToArray())
-	require.Equal(t, []string{"20"}, facetGroups["total-area (hex-cylinder)"].Facets["height"].Values.ToArray())
-	require.Equal(t, []string{"1"}, facetGroups["total-area (hex-cylinder)"].Facets["weird"].Values.ToArray())
-	require.Equal(t, 2, len(facetGroups["head (hex-cylinder)"].Facets))
-	require.Equal(t, 3, len(facetGroups["shaft (screwthread)"].Facets))
+	require.Equal(t, 3, facetGroups.Len())
+	require.Equal(t, 3, len(facetGroups.Get("total-area (hex-cylinder)").Facets))
+	require.ElementsMatch(t, []string{"15", "16"}, facetGroups.Get("total-area (hex-cylinder)").Facets["diameter"].Values.ToArray())
+	require.Equal(t, []string{"20"}, facetGroups.Get("total-area (hex-cylinder)").Facets["height"].Values.ToArray())
+	require.Equal(t, []string{"1"}, facetGroups.Get("total-area (hex-cylinder)").Facets["weird"].Values.ToArray())
+	require.Equal(t, 2, len(facetGroups.Get("head (hex-cylinder)").Facets))
+	require.Equal(t, 3, len(facetGroups.Get("shaft (screwthread)").Facets))
 }
 
 func TestEdges(t *testing.T) {
@@ -189,10 +204,10 @@ func TestCapitalization(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 1, len(facetGroups))
-	require.Equal(t, 3, len(facetGroups["total-area (hex-cylinder)"].Facets))
-	require.Equal(t, []string{"16"}, facetGroups["total-area (hex-cylinder)"].Facets["diameter"].Values.ToArray())
-	require.Equal(t, []string{"1"}, facetGroups["total-area (hex-cylinder)"].Facets["weird"].Values.ToArray())
+	require.Equal(t, 1, facetGroups.Len())
+	require.Equal(t, 3, len(facetGroups.Get("total-area (hex-cylinder)").Facets))
+	require.Equal(t, []string{"16"}, facetGroups.Get("total-area (hex-cylinder)").Facets["diameter"].Values.ToArray())
+	require.Equal(t, []string{"1"}, facetGroups.Get("total-area (hex-cylinder)").Facets["weird"].Values.ToArray())
 }
 
 var object1 = `{
