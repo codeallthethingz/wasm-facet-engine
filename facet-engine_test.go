@@ -2,7 +2,6 @@ package engine
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -44,7 +43,6 @@ func TestMarshalSet(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(data))
 	require.Equal(t, strings.ReplaceAll("{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}}", "\t", "  "), string(data))
 	decoded := map[string]*FacetGroup{}
 	err = json.Unmarshal(data, &decoded)

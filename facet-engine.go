@@ -92,27 +92,19 @@ func CreateFacetGroups(jsonData string, facetPath *FacetPath) (map[string]*Facet
 			nameMeta := getAtPathString(o, nameMetaPaths)
 			values := getAtPathMap(o, valuePaths)
 			key := strings.ToLower(fmt.Sprintf("%s (%s)", name, nameMeta))
-			fmt.Println(key)
 			if len(values) == 0 || strings.TrimSpace(name) == "" || strings.TrimSpace(nameMeta) == "" {
 				continue
 			}
 			if _, ok := facetGroups[key]; !ok {
-				fmt.Println("creating new facetGroup")
 				facetGroups[key] = &FacetGroup{
 					Name:   key,
 					Facets: map[string]*Facet{},
 				}
-			} else {
-				fmt.Println("facet group already exist")
 			}
 
 			for k, v := range values {
 				facetKey := strings.ToLower(k)
-				facet, ok := facetGroups[key].Facets[facetKey]
-				if ok {
-					fmt.Printf("adding new value: %v, %s, %s\n", facet.Values, facetKey, v)
-				} else {
-					fmt.Printf("creating new value: %s, %s\n", facetKey, v)
+				if _, ok := facetGroups[key].Facets[facetKey]; !ok {
 					facetGroups[key].Facets[facetKey] = &Facet{
 						Name:   facetKey,
 						Values: NewSet(),
