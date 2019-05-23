@@ -1,13 +1,59 @@
 package engine
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
+func TestForIds(t *testing.T) {
+	// TODO
+}
+func TestOptionalMetaName(t *testing.T) {
+	// TODO
+}
+
+func TestQuery(t *testing.T) {
+	// TODO
+}
+
+func TestQueryEdges(t *testing.T) {
+	// TODO
+}
+
+func TestUnmarshalSet(t *testing.T) {
+	decoded := map[string]*FacetGroup{}
+	err := json.Unmarshal([]byte("{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":\"esplode\"}}}}"), &decoded)
+	require.Error(t, err)
+}
+
+func TestMarshalSet(t *testing.T) {
+	facetGroups, err := CreateFacetGroups(readmeExample, &FacetPath{
+		ArrayDotNotation:     "measurements",
+		NameFieldDotNotation: "measurementName",
+		NameMetaDotNotation:  "metrics.metricName",
+		ValueMapDotNotation:  "metrics.measurements",
+	})
+	if err != nil {
+		panic(err)
+	}
+	data, err := json.Marshal(facetGroups)
+	if err != nil {
+		panic(err)
+	}
+	require.Equal(t, strings.ReplaceAll("{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}}", "\t", "  "), string(data))
+	decoded := map[string]*FacetGroup{}
+	err = json.Unmarshal(data, &decoded)
+	if err != nil {
+		panic(err)
+	}
+	require.ElementsMatch(t, []string{"10", "20"}, decoded["area (cube)"].Facets["side"].Values.ToArray())
+}
+
 func TestBadPath(t *testing.T) {
-	facets, err := CreateFacets("["+object7+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object7+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "subobject.subobject.name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -16,8 +62,8 @@ func TestBadPath(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facets))
-	facets, err = CreateFacets("["+object7+"]", &FacetPath{
+	require.Equal(t, 0, len(facetGroups))
+	facetGroups, err = CreateFacetGroups("["+object7+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -26,10 +72,10 @@ func TestBadPath(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facets))
+	require.Equal(t, 0, len(facetGroups))
 }
 func TestMissingMetaName(t *testing.T) {
-	facets, err := CreateFacets("["+object6+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object6+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -38,10 +84,10 @@ func TestMissingMetaName(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facets))
+	require.Equal(t, 0, len(facetGroups))
 }
 func TestMissingName(t *testing.T) {
-	facets, err := CreateFacets("["+object6+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object6+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -50,10 +96,10 @@ func TestMissingName(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facets))
+	require.Equal(t, 0, len(facetGroups))
 }
 func TestNoValues(t *testing.T) {
-	facets, err := CreateFacets("["+object5+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object5+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -62,11 +108,11 @@ func TestNoValues(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 0, len(facets))
+	require.Equal(t, 0, len(facetGroups))
 }
 func TestDots(t *testing.T) {
 
-	facets, err := CreateFacets("["+object4+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object4+"]", &FacetPath{
 		ArrayDotNotation:     "container.bounds",
 		NameFieldDotNotation: "container.name",
 		NameMetaDotNotation:  "boundingType.container.name",
@@ -75,13 +121,13 @@ func TestDots(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 1, len(facets))
-	require.Equal(t, 3, len(facets["total-area (hex-cylinder)"].Facets))
+	require.Equal(t, 1, len(facetGroups))
+	require.Equal(t, 3, len(facetGroups["total-area (hex-cylinder)"].Facets))
 }
 
 func TestCreateFacets(t *testing.T) {
 
-	facets, err := CreateFacets("["+object1+","+object2+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object1+","+object2+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -90,34 +136,34 @@ func TestCreateFacets(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 3, len(facets))
-	require.Equal(t, 3, len(facets["total-area (hex-cylinder)"].Facets))
-	require.ElementsMatch(t, []string{"15", "16"}, facets["total-area (hex-cylinder)"].Facets["diameter"].Values.ToArray())
-	require.Equal(t, []string{"20"}, facets["total-area (hex-cylinder)"].Facets["height"].Values.ToArray())
-	require.Equal(t, []string{"1"}, facets["total-area (hex-cylinder)"].Facets["weird"].Values.ToArray())
-	require.Equal(t, 2, len(facets["head (hex-cylinder)"].Facets))
-	require.Equal(t, 3, len(facets["shaft (screwthread)"].Facets))
+	require.Equal(t, 3, len(facetGroups))
+	require.Equal(t, 3, len(facetGroups["total-area (hex-cylinder)"].Facets))
+	require.ElementsMatch(t, []string{"15", "16"}, facetGroups["total-area (hex-cylinder)"].Facets["diameter"].Values.ToArray())
+	require.Equal(t, []string{"20"}, facetGroups["total-area (hex-cylinder)"].Facets["height"].Values.ToArray())
+	require.Equal(t, []string{"1"}, facetGroups["total-area (hex-cylinder)"].Facets["weird"].Values.ToArray())
+	require.Equal(t, 2, len(facetGroups["head (hex-cylinder)"].Facets))
+	require.Equal(t, 3, len(facetGroups["shaft (screwthread)"].Facets))
 }
 
 func TestEdges(t *testing.T) {
-	facetPath := &FacetPath{
+	facetGroups := &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
 		ValueMapDotNotation:  "boundingType.measurements",
 	}
-	_, err := CreateFacets("[{}]", facetPath)
+	_, err := CreateFacetGroups("[{}]", facetGroups)
 	require.Nil(t, err)
-	_, err = CreateFacets("[]", facetPath)
+	_, err = CreateFacetGroups("[]", facetGroups)
 	require.Nil(t, err)
-	_, err = CreateFacets("  ", facetPath)
+	_, err = CreateFacetGroups("  ", facetGroups)
 	require.Nil(t, err)
-	_, err = CreateFacets("NOTJSON", facetPath)
+	_, err = CreateFacetGroups("NOTJSON", facetGroups)
 	require.Error(t, err)
 }
 
 func TestCapitalization(t *testing.T) {
-	facets, err := CreateFacets("["+object2+","+object3+"]", &FacetPath{
+	facetGroups, err := CreateFacetGroups("["+object2+","+object3+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
@@ -126,10 +172,10 @@ func TestCapitalization(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, 1, len(facets))
-	require.Equal(t, 3, len(facets["total-area (hex-cylinder)"].Facets))
-	require.Equal(t, []string{"16"}, facets["total-area (hex-cylinder)"].Facets["diameter"].Values.ToArray())
-	require.Equal(t, []string{"1"}, facets["total-area (hex-cylinder)"].Facets["weird"].Values.ToArray())
+	require.Equal(t, 1, len(facetGroups))
+	require.Equal(t, 3, len(facetGroups["total-area (hex-cylinder)"].Facets))
+	require.Equal(t, []string{"16"}, facetGroups["total-area (hex-cylinder)"].Facets["diameter"].Values.ToArray())
+	require.Equal(t, []string{"1"}, facetGroups["total-area (hex-cylinder)"].Facets["weird"].Values.ToArray())
 }
 
 var object1 = `{
@@ -255,3 +301,36 @@ var object7 = `{
 		}
 	]
 }`
+
+var readmeExample = `
+[
+  {
+    "name": "record 1",
+    "measurements": [
+      {
+        "measurementName": "area",
+        "metrics": {
+          "metricName": "cube",
+          "measurements": {
+            "side": "10"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "record 2",
+    "measurements": [
+      {
+        "measurementName": "area",
+        "metrics": {
+          "metricName": "cube",
+          "measurements": {
+            "side": "20"
+          }
+        }
+      }
+    ]
+  }
+]
+`
