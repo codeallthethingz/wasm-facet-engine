@@ -65,9 +65,9 @@ func getAtPath(data map[string]interface{}, path []string) interface{} {
 	return getAtPath(data[path[0]].(map[string]interface{}), path[1:])
 }
 
-// CreateFacets take an json string representation of an array of objects and turn them in to facets.
+// CreateFacetGroups take an json string representation of an array of objects and turn them in to facets.
 // facetPaths is a query of which facets in the data to use to create facets.
-func CreateFacets(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
+func CreateFacetGroups(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
 	facetGroups := map[string]*FacetGroup{}
 
 	if strings.TrimSpace(jsonData) == "" {
