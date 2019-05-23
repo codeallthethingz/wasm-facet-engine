@@ -14,7 +14,7 @@ Given the following array of two json objects held in a variable called `jsonDat
 ```json
 [
   {
-    "name": "record 1",
+    "id": "record 1",
     "measurements": [
       {
         "measurementName": "area",
@@ -28,7 +28,7 @@ Given the following array of two json objects held in a variable called `jsonDat
     ]
   },
   {
-    "name": "record 2",
+    "id": "record 2",
     "measurements": [
       {
         "measurementName": "area",

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"sort"
 )
 
 // Set simple set type
@@ -35,7 +36,9 @@ func NewSet() *Set {
 
 // MarshalJSON Set is optimized for memory usage and lookup but is really a list of unique elements.
 func (s *Set) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ToArray())
+	sorted := s.ToArray()
+	sort.Strings(sorted)
+	return json.Marshal(sorted)
 }
 
 // UnmarshalJSON Set is optimized for memory usage and lookup but is really a list of unique elements.

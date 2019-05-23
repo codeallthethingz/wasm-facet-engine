@@ -9,7 +9,22 @@ import (
 )
 
 func TestForIds(t *testing.T) {
-	// TODO
+	_, err := CreateFacetGroups("["+object8+"]", &FacetPath{
+		ArrayDotNotation:     "bounds",
+		NameFieldDotNotation: "name",
+		NameMetaDotNotation:  "boundingType.name",
+		ValueMapDotNotation:  "boundingType.measurements",
+	})
+	require.Error(t, err)
+	_, err = CreateFacetGroups("["+object8+"]", &FacetPath{
+		IDDotNotation:        "name",
+		ArrayDotNotation:     "bounds",
+		NameFieldDotNotation: "name",
+		NameMetaDotNotation:  "boundingType.name",
+		ValueMapDotNotation:  "boundingType.measurements",
+	})
+	require.Nil(t, err)
+
 }
 func TestOptionalMetaName(t *testing.T) {
 	// TODO
@@ -152,13 +167,15 @@ func TestEdges(t *testing.T) {
 		NameMetaDotNotation:  "boundingType.name",
 		ValueMapDotNotation:  "boundingType.measurements",
 	}
-	_, err := CreateFacetGroups("[{}]", facetGroups)
+	_, err := CreateFacetGroups("[{\"id\":\"1\"}]", facetGroups)
 	require.Nil(t, err)
 	_, err = CreateFacetGroups("[]", facetGroups)
 	require.Nil(t, err)
 	_, err = CreateFacetGroups("  ", facetGroups)
 	require.Nil(t, err)
 	_, err = CreateFacetGroups("NOTJSON", facetGroups)
+	require.Error(t, err)
+	_, err = CreateFacetGroups("["+object8+"]", facetGroups)
 	require.Error(t, err)
 }
 
@@ -179,6 +196,7 @@ func TestCapitalization(t *testing.T) {
 }
 
 var object1 = `{
+	"id": "1",
   "bounds": [
     {
       "name": "total-area",
@@ -215,6 +233,7 @@ var object1 = `{
 }`
 
 var object2 = `{
+	"id": "2",
   "bounds": [
     {
       "name": "total-area",
@@ -231,6 +250,7 @@ var object2 = `{
 }`
 
 var object3 = `{
+	"id": "3",
   "bounds": [
     {
       "name": "total-AREA",
@@ -246,6 +266,7 @@ var object3 = `{
 	]
 }`
 var object4 = `{
+	"id": "4",
 	"container" : {
 		"bounds": [
 			{
@@ -264,6 +285,7 @@ var object4 = `{
 }`
 
 var object5 = `{
+	"id": "5",
   "bounds": [
     {
       "name": "total-AREA",
@@ -276,6 +298,7 @@ var object5 = `{
 	]
 }`
 var object6 = `{
+	"id": "6",
   "bounds": [
     {
       "boundingType": {
@@ -289,6 +312,22 @@ var object6 = `{
 }`
 
 var object7 = `{
+	"id": "7",
+  "bounds": [
+    {
+      "name": "total-AREA",
+      "boundingType": {
+				"name": "hex-cylinder",
+        "measurements": {
+					"diameter": "16"
+        }
+      }
+		}
+	]
+}`
+
+var object8 = `{
+	"name": "8",
   "bounds": [
     {
       "name": "total-AREA",
@@ -305,7 +344,7 @@ var object7 = `{
 var readmeExample = `
 [
   {
-    "name": "record 1",
+    "id": "record 1",
     "measurements": [
       {
         "measurementName": "area",
@@ -319,7 +358,7 @@ var readmeExample = `
     ]
   },
   {
-    "name": "record 2",
+    "id": "record 2",
     "measurements": [
       {
         "measurementName": "area",
