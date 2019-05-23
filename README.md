@@ -47,15 +47,15 @@ Given the following array of two json objects held in a variable called `jsonDat
 The following go code will generate a facet group, with facets with facet values.
 
 ```go
-	facetGroup, _ := CreateFacets(jsonData, &FacetPath{
-		ArrayDotNotation:     "measurements",
-		NameFieldDotNotation: "measurementName",
-		NameMetaDotNotation:  "metrics.metricName",
-		ValueMapDotNotation:  "metrics.measurements",
-	})
-	if err != nil {
-		panic(err)
-	}
+facetGroup, _ := CreateFacets(jsonData, &FacetPath{
+  ArrayDotNotation:     "measurements",
+  NameFieldDotNotation: "measurementName",
+  NameMetaDotNotation:  "metrics.metricName",
+  ValueMapDotNotation:  "metrics.measurements",
+})
+if err != nil {
+  panic(err)
+}
 ```
 
 The return map of FacetGroups will have the following structure (json marshalled for viewing)
@@ -67,10 +67,7 @@ The return map of FacetGroups will have the following structure (json marshalled
     "Facets": {
       "side": {
         "Name": "side",
-        "Values": [
-          "10",
-          "20"
-        ]
+        "Values": ["10", "20"]
       }
     }
   }
@@ -82,5 +79,5 @@ You can then filter these results
 ```go
 query := &Query{}
 query.AddFilter("area (cube)", "side", Inclusive(8), Exclusive(12))
-listOfIds := facetGroups.query(query) 
+listOfIds := facetGroups.query(query)
 ```
