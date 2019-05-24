@@ -7,8 +7,47 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestQuery(t *testing.T) {
-	facetGroups, err := CreateFacetGroups(readmeExample, &FacetPath{
+func TestQueryEdges(t *testing.T) {
+	facetGroups, _ := CreateFacetGroups("["+object9+"]", &FacetPath{
+		ArrayDotNotation:     "bounds",
+		NameFieldDotNotation: "name",
+		NameMetaDotNotation:  "boundingType.name",
+		ValueMapDotNotation:  "boundingType.measurements",
+	})
+	query := &Query{}
+	query.AddFilter("total-area (hex-cylinder)", "height", Inclusive(0), Inclusive(25))
+	_, err := facetGroups.Query(query)
+	require.Error(t, err)
+}
+
+func TestQueryInclusiveExclusive(t *testing.T) {
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(8), Inclusive(12), []string{"record 1"})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(8), Inclusive(25), []string{"record 1", "record 2"})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(20), []string{"record 1", "record 2"})
+	testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Exclusive(20), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Exclusive(10), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Inclusive(10), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Exclusive(10), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(10), []string{"record 1"})
+}
+func TestQueryAnd(t *testing.T) {
+	facetGroups, _ := CreateFacetGroups("["+object1+","+object2+"]", &FacetPath{
+		ArrayDotNotation:     "bounds",
+		NameFieldDotNotation: "name",
+		NameMetaDotNotation:  "boundingType.name",
+		ValueMapDotNotation:  "boundingType.measurements",
+	})
+	query := &Query{}
+	query.AddFilter("total-area (hex-cylinder)", "height", Inclusive(0), Inclusive(25))
+	listOfIds, _ := facetGroups.Query(query)
+	require.ElementsMatch(t, []string{"1", "2"}, listOfIds)
+	query.AddFilter("shaft (screwthread)", "pitch", Inclusive(1.5), Inclusive(1.5))
+	listOfIds, _ = facetGroups.Query(query)
+	require.ElementsMatch(t, []string{"1"}, listOfIds)
+}
+
+func testFilter(t *testing.T, example string, facetGroupName string, facetName string, min Range, max Range, expected []string) {
+	facetGroups, err := CreateFacetGroups(example, &FacetPath{
 		ArrayDotNotation:     "measurements",
 		NameFieldDotNotation: "measurementName",
 		NameMetaDotNotation:  "metrics.metricName",
@@ -17,13 +56,9 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	query := &Query{}
-	query.AddFilter("area (cube)", "side", Inclusive(8), Exclusive(12))
-	listOfIds, err := facetGroups.query(query)
-	if err != nil {
-		panic(err)
-	}
-	require.Equal(t, []string{"record 1"}, listOfIds)
+	listOfIds, err := facetGroups.Query((&Query{}).AddFilter(facetGroupName, facetName, min, max))
+	require.Nil(t, err)
+	require.ElementsMatch(t, expected, listOfIds)
 }
 
 func TestForIds(t *testing.T) {
@@ -42,15 +77,10 @@ func TestForIds(t *testing.T) {
 		ValueMapDotNotation:  "boundingType.measurements",
 	})
 	require.Nil(t, err)
-
 }
+
 func TestOptionalMetaName(t *testing.T) {
 	// TODO
-}
-
-func TestQueryEdges(t *testing.T) {
-	// TODO
-	t.Fail()
 }
 
 func TestUnmarshalSet(t *testing.T) {
@@ -73,13 +103,13 @@ func TestMarshalSet(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, "{\"FacetGroup\":{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}}}", string(data))
-	decoded := map[string]*FacetGroup{}
+	require.Equal(t, "{\"FacetGroup\":{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}},\"RecordLookup\":{\"area (cube) - side\":[{\"Value\":\"10\",\"ID\":\"record 1\"},{\"Value\":\"20\",\"ID\":\"record 2\"}]}}", string(data))
+	decoded := &FacetGroups{}
 	err = json.Unmarshal(data, &decoded)
 	if err != nil {
 		panic(err)
 	}
-	require.ElementsMatch(t, []string{"10", "20"}, decoded["area (cube)"].Facets["side"].Values.ToArray())
+	require.ElementsMatch(t, []string{"10", "20"}, decoded.Get("area (cube)").Facets["side"].Values.ToArray())
 }
 
 func TestBadPath(t *testing.T) {
@@ -166,6 +196,10 @@ func TestCreateFacets(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
+	missing := facetGroups.Get("missing value")
+	require.Nil(t, missing)
+
 	require.Equal(t, 3, facetGroups.Len())
 	require.Equal(t, 3, len(facetGroups.Get("total-area (hex-cylinder)").Facets))
 	require.ElementsMatch(t, []string{"15", "16"}, facetGroups.Get("total-area (hex-cylinder)").Facets["diameter"].Values.ToArray())
@@ -176,21 +210,21 @@ func TestCreateFacets(t *testing.T) {
 }
 
 func TestEdges(t *testing.T) {
-	facetGroups := &FacetPath{
+	facetPath := &FacetPath{
 		ArrayDotNotation:     "bounds",
 		NameFieldDotNotation: "name",
 		NameMetaDotNotation:  "boundingType.name",
 		ValueMapDotNotation:  "boundingType.measurements",
 	}
-	_, err := CreateFacetGroups("[{\"id\":\"1\"}]", facetGroups)
+	_, err := CreateFacetGroups("[{\"id\":\"1\"}]", facetPath)
 	require.Nil(t, err)
-	_, err = CreateFacetGroups("[]", facetGroups)
+	_, err = CreateFacetGroups("[]", facetPath)
 	require.Nil(t, err)
-	_, err = CreateFacetGroups("  ", facetGroups)
+	_, err = CreateFacetGroups("  ", facetPath)
 	require.Nil(t, err)
-	_, err = CreateFacetGroups("NOTJSON", facetGroups)
+	_, err = CreateFacetGroups("NOTJSON", facetPath)
 	require.Error(t, err)
-	_, err = CreateFacetGroups("["+object8+"]", facetGroups)
+	_, err = CreateFacetGroups("["+object8+"]", facetPath)
 	require.Error(t, err)
 }
 
@@ -350,6 +384,20 @@ var object8 = `{
 				"name": "hex-cylinder",
         "measurements": {
 					"diameter": "16"
+        }
+      }
+		}
+	]
+}`
+var object9 = `{
+	"id": "9",
+  "bounds": [
+    {
+      "name": "total-AREA",
+      "boundingType": {
+				"name": "hex-cylinder",
+        "measurements": {
+					"height": "16h"
         }
       }
 		}

@@ -3,18 +3,38 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
 // FacetGroups is a map of FacetGroup
 type FacetGroups struct {
-	FacetGroup map[string]*FacetGroup
+	FacetGroup   map[string]*FacetGroup
+	RecordLookup RecordLookup
+}
+
+// RecordLookup Set of records
+type RecordLookup map[string][]*Record
+
+// Add a record to the map.
+func (r RecordLookup) Add(key string, record *Record) {
+	if _, ok := r[key]; !ok {
+		r[key] = []*Record{}
+	}
+	r[key] = append(r[key], record)
+}
+
+// Record holds values and ids for filtering records.
+type Record struct {
+	Value string
+	ID    string
 }
 
 // NewFacetGroups create a new one.
 func NewFacetGroups() *FacetGroups {
 	return &FacetGroups{
-		FacetGroup: map[string]*FacetGroup{},
+		FacetGroup:   map[string]*FacetGroup{},
+		RecordLookup: map[string][]*Record{},
 	}
 }
 
@@ -76,7 +96,7 @@ type filter struct {
 }
 
 // AddFilter adds a set of criteria that records will have to match.
-func (q *Query) AddFilter(facetGroupName string, facetName string, min Range, max Range) {
+func (q *Query) AddFilter(facetGroupName string, facetName string, min Range, max Range) *Query {
 	if q.Filters == nil {
 		q.Filters = []filter{}
 	}
@@ -86,52 +106,91 @@ func (q *Query) AddFilter(facetGroupName string, facetName string, min Range, ma
 		Min:            min,
 		Max:            max,
 	})
+	return q
 }
 
 // Range repnesents min and max bounds inclusive or exclusive
 type Range interface {
 	IsInclusive() bool
-	Value() int64
+	Value() float64
 }
 
 // Inclusive range value
-func Inclusive(value int64) Range {
+func Inclusive(value float64) Range {
 	return inclusive{
 		value: value,
 	}
 }
 
 // Exclusive range value
-func Exclusive(value int64) Range {
+func Exclusive(value float64) Range {
 	return exclusive{
 		value: value,
 	}
 }
 
 type inclusive struct {
-	value int64
+	value float64
 }
 
 func (i inclusive) IsInclusive() bool {
 	return true
 }
-func (i inclusive) Value() int64 {
-	return i.Value()
+func (i inclusive) Value() float64 {
+	return i.value
 }
 
 type exclusive struct {
-	value int64
+	value float64
 }
 
 func (e exclusive) IsInclusive() bool {
 	return false
 }
-func (e exclusive) Value() int64 {
-	return e.Value()
+func (e exclusive) Value() float64 {
+	return e.value
 }
 
-func (f FacetGroups) query(query *Query) ([]string, error) {
-	return nil, nil
+// Query filter the records and return ids that match the filters
+func (f FacetGroups) Query(query *Query) ([]string, error) {
+	listOfMaps := make([]map[string]bool, len(query.Filters))
+	results := []string{}
+	for i, filter := range query.Filters {
+		records, ok := f.RecordLookup[fmt.Sprintf("%s - %s", filter.FacetGroupName, filter.FacetName)]
+		if ok {
+			matchingIDMap, err := toStringMap(records, filter)
+			if err != nil {
+				return nil, err
+			}
+			listOfMaps[i] = matchingIDMap
+		}
+	}
+	for k := range listOfMaps[0] {
+		inAll := true
+		for i := 1; i < len(listOfMaps); i++ {
+			_, inThis := listOfMaps[i][k]
+			inAll = inThis && inAll
+		}
+		if inAll {
+			results = append(results, k)
+		}
+	}
+	return results, nil
+}
+
+func toStringMap(records []*Record, filter filter) (map[string]bool, error) {
+	results := map[string]bool{}
+	for _, record := range records {
+		value, err := strconv.ParseFloat(record.Value, 64)
+		if err != nil {
+			return nil, err
+		}
+		if ((value >= filter.Min.Value() && filter.Min.IsInclusive()) || (value > filter.Min.Value() && !filter.Min.IsInclusive())) &&
+			((value <= filter.Max.Value() && filter.Max.IsInclusive()) || (value < filter.Max.Value() && !filter.Max.IsInclusive())) {
+			results[record.ID] = true
+		}
+	}
+	return results, nil
 }
 
 // CreateFacetGroups take an json string representation of an array of objects and turn them in to facets.
@@ -180,6 +239,10 @@ func CreateFacetGroups(jsonData string, facetPath *FacetPath) (*FacetGroups, err
 
 			for k, v := range values {
 				facetKey := strings.ToLower(k)
+				facetGroups.RecordLookup.Add(fmt.Sprintf("%s - %s", key, facetKey), &Record{
+					ID:    id,
+					Value: v,
+				})
 				facetGroup := facetGroups.Get(key)
 				if _, ok := facetGroup.Facets[facetKey]; !ok {
 					facetGroup.Facets[facetKey] = &Facet{
