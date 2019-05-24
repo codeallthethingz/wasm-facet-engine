@@ -79,10 +79,6 @@ func TestForIds(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestOptionalMetaName(t *testing.T) {
-	// TODO
-}
-
 func TestUnmarshalSet(t *testing.T) {
 	decoded := map[string]*FacetGroup{}
 	err := json.Unmarshal([]byte("{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":\"esplode\"}}}}"), &decoded)
