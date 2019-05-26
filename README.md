@@ -79,7 +79,8 @@ let config = {
   nameMetaDotNotation:  "metrics.metricName",
   valueMapDotNotation:  "metrics.measurements",
 }
-facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
+// this will call back to facetEngineCallbackFacets(stringifiedFacets)
+facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData)) 
 ```
 
 Add a filter and run it
