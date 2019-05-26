@@ -7,12 +7,32 @@ The advantage of this approach is you can have very rich faceting without explod
 
 The "small number" has yet to be determined, but performance metrics will be posted here when we know more.
 
+## Installation
+
+Add the js bundle to your application
+
+```bash
+npm i @codeallthethingz/facet-engine
+```
+
+Download the `facet-engine.wasm` file from https://github.com/codeallthethingz/wasm-facet-engine/releases
+
+Ensure that this wasm file is served with the mime-type `application/wasm` or it will not work.
+
+This will add the following functions into the global scope
+- `facetEngineLoad(facetEngineWasmLocation)` - load the wasm file into memory. Default: `facet-engine.wasm`
+- `facetEngineInitializeObjects(stringifiedConfiguration, stringifiedObjectArray)` - send in the records that you're going to work with and the configuration about which data elements are to be used as facets. Facets are sent back to `facetEngineCallbackFacets(stringifiedFacets)`
+- `facetEngineAddFilter('filterGroupName', 'metricName', true, 7, false, 12)` - add a filter to the state.  The boolean parameters specify that the range is (true = inclusive) or (false = exclusive)
+- `facetEngineRemoveFilter(filterName)` - remove a filter by name
+- `facetEngineClearFilters()` - remove all filters
+- `facetEngineQuery()` - return a json array of id's that match all the set filters.  Results are sent to a callback invocation of a function you should add called `facetEngineCallbackResults(stringifiedIdArray)`.  Facets are sent back to `facetEngineCallbackFacets(stringifiedFacets)`
+
 ## Usage
 
 Given the following array of two json objects held in a variable called `jsonData`:
 
-```json
-[
+```javascript
+let jsonData = [
   {
     "id": "record 1",
     "measurements": [
@@ -44,45 +64,36 @@ Given the following array of two json objects held in a variable called `jsonDat
 ]
 ```
 
-The following go code will generate a facet group, with facets with facet values.
+Load the facet engine
 
-```go
-facetGroup, _ := CreateFacets(jsonData, &FacetPath{
-  ArrayDotNotation:     "measurements",
-  NameFieldDotNotation: "measurementName",
-  NameMetaDotNotation:  "metrics.metricName",
-  ValueMapDotNotation:  "metrics.measurements",
-})
-if err != nil {
-  panic(err)
-}
+```javascript
+facetEngineLoad()
 ```
 
-The return map of FacetGroups will have the following structure (json marshalled for viewing)
+Initialize the engine with the list of objects to create facets for and the configuration of which data elements to extract for facets.
 
-```json
-{
-  "FacetGroup": {
-    "area (cube)": {
-      "Name": "area (cube)",
-      "Facets": {
-        "side": {
-          "Name": "side",
-          "Values": [
-            "10",
-            "20"
-          ]
-        }
-      }
-    }
-  }
+```javascript
+let config = {
+  arrayDotNotation:     "measurements",
+  nameFieldDotNotation: "measurementName",
+  nameMetaDotNotation:  "metrics.metricName",
+  valueMapDotNotation:  "metrics.measurements",
 }
+facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
 ```
 
-You can then filter these results
+Add a filter and run it
 
-```go
-query := &Query{}
-query.AddFilter("area (cube)", "side", Inclusive(8), Exclusive(12))
-listOfIds := facetGroups.query(query)
+```javascript
+query.AddFilter()
+facetEngineAddFilter("area (cube)", "side", true, 8.0, false, 12.0)
+facetEngineQuery()
+function facetEngineCallbackResults(stringifiedIdArray) {
+  listOfIds = JSON.parse(stringifiedIdArray)
+  // Do something with the ids
+}
+function facetEngineCallbackFacets(stringifiedFacets) {
+  facets = JSON.parse(stringifiedFacets)
+  // Do something with the facets
+}
 ```
