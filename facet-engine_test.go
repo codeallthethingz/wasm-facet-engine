@@ -7,6 +7,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEmptyQuery(t *testing.T) {
+	facetGroups, _ := CreateFacetGroups("["+object9+"]", &FacetPath{
+		ArrayDotNotation:     "bounds",
+		NameFieldDotNotation: "name",
+		NameMetaDotNotation:  "boundingType.name",
+		ValueMapDotNotation:  "boundingType.measurements",
+	})
+	_, err := facetGroups.Query(&Query{})
+	require.Error(t, err)
+}
+
 func TestQueryEdges(t *testing.T) {
 	facetGroups, _ := CreateFacetGroups("["+object9+"]", &FacetPath{
 		ArrayDotNotation:     "bounds",

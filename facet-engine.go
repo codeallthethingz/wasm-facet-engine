@@ -153,6 +153,9 @@ func (e exclusive) Value() float64 {
 
 // Query filter the records and return ids that match the filters
 func (f FacetGroups) Query(query *Query) ([]string, error) {
+	if len(query.Filters) == 0 {
+		return nil, fmt.Errorf("no query filters were added.  This query all ids")
+	}
 	listOfMaps := make([]map[string]bool, len(query.Filters))
 	results := []string{}
 	for i, filter := range query.Filters {
@@ -169,6 +172,7 @@ func (f FacetGroups) Query(query *Query) ([]string, error) {
 		inAll := true
 		for i := 1; i < len(listOfMaps); i++ {
 			_, inThis := listOfMaps[i][k]
+			// todo should just break when the first false happens
 			inAll = inThis && inAll
 		}
 		if inAll {
