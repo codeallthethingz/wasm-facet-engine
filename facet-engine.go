@@ -12,6 +12,8 @@ type FacetEngine struct {
 	RecordLookup   RecordLookup
 	facetPath      *FacetPath
 	ids            *Set
+	allIds         *Set
+	query          *Query
 	genericObjects []map[string]interface{}
 }
 
@@ -37,6 +39,8 @@ func NewFacetEngine(dataJSON string, config *FacetPath) (*FacetEngine, map[strin
 	facetEngine := &FacetEngine{
 		RecordLookup: map[string][]*Record{},
 		ids:          NewSet(),
+		allIds:       NewSet(),
+		query:        &Query{},
 	}
 	facetGroups, err := facetEngine.Initialize(dataJSON, config)
 	return facetEngine, facetGroups, err
@@ -76,17 +80,24 @@ type filter struct {
 }
 
 // AddFilter adds a set of criteria that records will have to match.
-func (q *Query) AddFilter(facetGroupName string, facetName string, min Range, max Range) *Query {
-	if q.Filters == nil {
-		q.Filters = []filter{}
+func (f *FacetEngine) AddFilter(facetGroupName string, facetName string, min Range, max Range) error {
+
+	if f.query.Filters == nil {
+		f.query.Filters = []filter{}
 	}
-	q.Filters = append(q.Filters, filter{
+	if strings.TrimSpace(facetGroupName) == "" {
+		return fmt.Errorf("must specify facetgroup name")
+	}
+	if strings.TrimSpace(facetName) == "" {
+		return fmt.Errorf("must specify facet name")
+	}
+	f.query.Filters = append(f.query.Filters, filter{
 		FacetGroupName: facetGroupName,
 		FacetName:      facetName,
 		Min:            min,
 		Max:            max,
 	})
-	return q
+	return nil
 }
 
 // Range repnesents min and max bounds inclusive or exclusive
@@ -131,21 +142,31 @@ func (e exclusive) Value() float64 {
 	return e.value
 }
 
-// Query filter the records and return ids that match the filters
-func (f FacetEngine) Query(query *Query) ([]string, map[string]*FacetGroup, error) {
-	if len(query.Filters) == 0 {
-		return nil, nil, fmt.Errorf("no query filters were added.  This query all ids")
-	}
-	listOfMaps := make([]map[string]bool, len(query.Filters))
+// ClearFilters remove all the query state
+func (f *FacetEngine) ClearFilters() {
+	f.query = &Query{}
+	f.resetAllIds()
+}
+
+func (f *FacetEngine) resetAllIds() {
 	f.ids = NewSet()
-	for i, filter := range query.Filters {
-		records, ok := f.RecordLookup[fmt.Sprintf("%s - %s", filter.FacetGroupName, filter.FacetName)]
-		if ok {
-			matchingIDMap, err := toStringMap(records, filter)
-			if err != nil {
-				return nil, nil, err
-			}
-			listOfMaps[i] = matchingIDMap
+	for _, id := range f.allIds.ToArray() {
+		f.ids.Add(id)
+	}
+}
+
+// Query filter the records and return ids that match the filters
+func (f FacetEngine) Query() ([]string, map[string]*FacetGroup, error) {
+	if len(f.query.Filters) == 0 {
+		facetGroups, err := f.GetFacets()
+		return f.ids.ToArray(), facetGroups, err
+	}
+	listOfMaps := make([]map[string]bool, len(f.query.Filters))
+	f.ids = NewSet()
+	for i, filter := range f.query.Filters {
+		key := fmt.Sprintf("%s - %s", filter.FacetGroupName, filter.FacetName)
+		if records, ok := f.RecordLookup[key]; ok {
+			listOfMaps[i] = toStringMap(records, filter)
 		}
 	}
 	for k := range listOfMaps[0] {
@@ -164,19 +185,17 @@ func (f FacetEngine) Query(query *Query) ([]string, map[string]*FacetGroup, erro
 	return f.ids.ToArray(), facetGroups, err
 }
 
-func toStringMap(records []*Record, filter filter) (map[string]bool, error) {
+func toStringMap(records []*Record, filter filter) map[string]bool {
 	results := map[string]bool{}
 	for _, record := range records {
-		value, err := strconv.ParseFloat(record.Value, 64)
-		if err != nil {
-			return nil, err
-		}
+		// this parse error is guaranteed not to happen elsewhere.
+		value, _ := strconv.ParseFloat(record.Value, 64)
 		if ((value >= filter.Min.Value() && filter.Min.IsInclusive()) || (value > filter.Min.Value() && !filter.Min.IsInclusive())) &&
 			((value <= filter.Max.Value() && filter.Max.IsInclusive()) || (value < filter.Max.Value() && !filter.Max.IsInclusive())) {
 			results[record.ID] = true
 		}
 	}
-	return results, nil
+	return results
 }
 
 // Initialize take an json string representation of an array of objects and turn them in to facets.
@@ -192,7 +211,10 @@ func (f *FacetEngine) Initialize(jsonData string, facetPath *FacetPath) (map[str
 	}
 	f.genericObjects = genericObjects
 	f.facetPath = facetPath
-	return f.GetFacets()
+
+	facetGroups, err := f.GetFacets()
+	f.resetAllIds()
+	return facetGroups, err
 }
 
 // GetFacets return a list of facets for the list of ids.  If ids is nil, return all possible facets.
@@ -210,6 +232,7 @@ func (f *FacetEngine) GetFacets() (map[string]*FacetGroup, error) {
 		if f.ids.Len() > 0 && !f.ids.Contains(id) {
 			continue
 		}
+		f.allIds.Add(id)
 		arrayPaths := strings.Split(f.facetPath.ArrayDotNotation, ".")
 		namePaths := strings.Split(f.facetPath.NameFieldDotNotation, ".")
 		nameMetaPaths := strings.Split(f.facetPath.NameMetaDotNotation, ".")
@@ -253,7 +276,6 @@ func (f *FacetEngine) GetFacets() (map[string]*FacetGroup, error) {
 			}
 		}
 	}
-
 	return facetGroups, nil
 }
 

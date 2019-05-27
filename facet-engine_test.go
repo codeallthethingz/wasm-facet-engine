@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ var defaultFacetPath = &FacetPath{
 	NameMetaDotNotation:  "boundingType.name",
 	ValueMapDotNotation:  "boundingType.measurements",
 }
-var exampleFacetPath = &FacetPath{
+var readmeFacetPath = &FacetPath{
 	ArrayDotNotation:     "measurements",
 	NameFieldDotNotation: "measurementName",
 	NameMetaDotNotation:  "metrics.metricName",
@@ -21,10 +22,11 @@ var exampleFacetPath = &FacetPath{
 }
 
 func TestFilterForIds(t *testing.T) {
-	facetEngine, _, err := NewFacetEngine(readmeExample, exampleFacetPath)
+	facetEngine, _, err := NewFacetEngine(readmeExample, readmeFacetPath)
 	if err != nil {
 		panic(err)
 	}
+	facetEngine.ids = NewSet()
 	facetEngine.ids.Add("record 1")
 	facetGroups, err := facetEngine.GetFacets()
 	require.Nil(t, err)
@@ -39,13 +41,17 @@ func TestFilterForIds(t *testing.T) {
 }
 
 func TestEmptyQuery(t *testing.T) {
-	facetEngine, _, _ := NewFacetEngine("["+object9+"]", defaultFacetPath)
-	_, _, err := facetEngine.Query(&Query{})
-	require.Error(t, err)
+	facetEngine, _, _ := NewFacetEngine(readmeExample, readmeFacetPath)
+	ids, facetGroups, err := facetEngine.Query()
+	require.Nil(t, err)
+	fmt.Println(ids, facetGroups, err)
+	require.ElementsMatch(t, []string{"record 1", "record 2"}, ids)
+	require.Equal(t, 1, len(facetGroups))
 }
 
-func TestQueryEdges(t *testing.T) {
+func TestBadNumber(t *testing.T) {
 	_, _, err := NewFacetEngine("["+object9+"]", defaultFacetPath)
+	require.Contains(t, err.Error(), "strconv.ParseFloat")
 	require.Error(t, err)
 }
 
@@ -59,23 +65,34 @@ func TestQueryInclusiveExclusive(t *testing.T) {
 	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Exclusive(10), []string{})
 	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(10), []string{"record 1"})
 }
+
+func TestClearFilters(t *testing.T) {
+	facetEngine, _, _ := NewFacetEngine(readmeExample, readmeFacetPath)
+	facetEngine.AddFilter("area (cube)", "side", Inclusive(0), Inclusive(12))
+	listOfIds, _, _ := facetEngine.Query()
+	require.ElementsMatch(t, []string{"record 1"}, listOfIds)
+	facetEngine.ClearFilters()
+	listOfIds, _, _ = facetEngine.Query()
+	require.ElementsMatch(t, []string{"record 1", "record 2"}, listOfIds)
+}
+
 func TestQueryAnd(t *testing.T) {
 	facetEngine, _, _ := NewFacetEngine("["+object1+","+object2+"]", defaultFacetPath)
-	query := &Query{}
-	query.AddFilter("total-area (hex-cylinder)", "height", Inclusive(0), Inclusive(25))
-	listOfIds, _, _ := facetEngine.Query(query)
+	facetEngine.AddFilter("total-area (hex-cylinder)", "height", Inclusive(0), Inclusive(25))
+	listOfIds, _, _ := facetEngine.Query()
 	require.ElementsMatch(t, []string{"1", "2"}, listOfIds)
-	query.AddFilter("shaft (screwthread)", "pitch", Inclusive(1.5), Inclusive(1.5))
-	listOfIds, _, _ = facetEngine.Query(query)
+	facetEngine.AddFilter("shaft (screwthread)", "pitch", Inclusive(1.5), Inclusive(1.5))
+	listOfIds, _, _ = facetEngine.Query()
 	require.ElementsMatch(t, []string{"1"}, listOfIds)
 }
 
 func testFilter(t *testing.T, example string, facetGroupName string, facetName string, min Range, max Range, expected []string) {
-	facetEngine, _, err := NewFacetEngine(example, exampleFacetPath)
+	facetEngine, _, err := NewFacetEngine(example, readmeFacetPath)
 	if err != nil {
 		panic(err)
 	}
-	listOfIds, _, err := facetEngine.Query((&Query{}).AddFilter(facetGroupName, facetName, min, max))
+	facetEngine.AddFilter(facetGroupName, facetName, min, max)
+	listOfIds, _, err := facetEngine.Query()
 	require.Nil(t, err)
 	require.ElementsMatch(t, expected, listOfIds)
 }
@@ -100,7 +117,7 @@ func TestUnmarshalSet(t *testing.T) {
 }
 
 func TestMarshalSet(t *testing.T) {
-	_, facetGroups, err := NewFacetEngine(readmeExample, exampleFacetPath)
+	_, facetGroups, err := NewFacetEngine(readmeExample, readmeFacetPath)
 	data, err := json.Marshal(facetGroups)
 	if err != nil {
 		panic(err)
