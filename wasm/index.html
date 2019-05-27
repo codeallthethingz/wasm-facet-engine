@@ -1,9 +1,4 @@
 <!doctype html>
-<!--
-Copyright 2018 The Go Authors. All rights reserved.
-Use of this source code is governed by a BSD-style
-license that can be found in the LICENSE file.
--->
 <html>
 
 <head>
@@ -13,14 +8,20 @@ license that can be found in the LICENSE file.
 </head>
 
 <body>
-  <!--
-	Add the following polyfill for Microsoft Edge 17/18 support:
-	<script src="https://cdn.jsdelivr.net/npm/text-encoding@0.7.0/lib/encoding.min.js"></script>
-	(see https://caniuse.com/#feat=textencoder)
-	-->
+
+  <div style="width:1200px; float:right">
+    <h2>Records</h2>
+    <div id="records"></div>
+  </div>
+  <div style="width:200px; float: left">
+    <h2>Refinements</h2>
+    <div id="refinements"></div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
   <script src="facet-engine.js"></script>
 
   <script>
+    createRecords(["record 1", "record 2"])
     let jsonData = [
       {
         "id": "record 1",
@@ -51,7 +52,7 @@ license that can be found in the LICENSE file.
         ]
       }
     ]
-    
+
     facetEngineLoad('facet-engine.wasm', function () {
       let config = {
         arrayDotNotation: "measurements",
@@ -61,16 +62,42 @@ license that can be found in the LICENSE file.
       }
       // this will call back to facetEngineCallbackFacets(stringifiedFacets)
       facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
-      facetEngineAddFilter("area (cube)", "side", false, 10.0, false, 22.0)
-      facetEngineQuery()
+      // facetEngineAddFilter("area (cube)", "side", false, 10.0, false, 22.0)
+      // facetEngineQuery()
     })
 
-    function facetEngineCallbackFacets(facetsJson) {
-      console.log('got facet callback: ' + facetsJson)
+    function facetEngineCallbackFacets(facetGroupsJson) {
+      facetGroups = JSON.parse(facetGroupsJson)
+      console.dir(facetGroups)
+      let html = ''
+      Object.keys(facetGroups).forEach(function (key1) {
+        let facetGroup = facetGroups[key1];
+        html += '<div class="group"><h3>' + key1 + '</h3></div>'
+        Object.keys(facetGroup.facets).forEach(function (key2) {
+          let facet = facetGroup.facets[key2]
+          html += '<div class="facet"><h4>' + key2 + '</h4></div>'
+          console.log(facet.values);
+          facet.values.forEach((value) => {
+            html += '<div class="facet-value">' + value + '</div>'
+          })
+        })
+      });
+
+      $("#refinements").append(html)
+
     }
 
     function facetEngineCallbackRecords(idsJson) {
-      console.log('got records callback: ' + idsJson)
+      ids = JSON.parse(idsJson)
+      createRecords(ids)
+    }
+
+    function createRecords(ids) {
+      let html = ''
+      ids.forEach((id) => {
+        html += '<div>' + id + '</div>';
+      })
+      $("#records").append(html)
     }
 
   </script>
