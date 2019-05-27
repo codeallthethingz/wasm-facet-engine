@@ -51,6 +51,7 @@ license that can be found in the LICENSE file.
         ]
       }
     ]
+    
     facetEngineLoad('facet-engine.wasm', function () {
       let config = {
         arrayDotNotation: "measurements",
@@ -60,12 +61,14 @@ license that can be found in the LICENSE file.
       }
       // this will call back to facetEngineCallbackFacets(stringifiedFacets)
       facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
+      facetEngineAddFilter("area (cube)", "side", true, 10.0, false, 22.0)
       facetEngineQuery()
     })
 
     function facetEngineCallbackFacets(facetsJson) {
       console.log('got facet callback: ' + facetsJson)
     }
+
     function facetEngineCallbackRecords(idsJson) {
       console.log('got records callback: ' + idsJson)
     }
