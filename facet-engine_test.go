@@ -51,13 +51,13 @@ func TestQueryEdges(t *testing.T) {
 
 func TestQueryInclusiveExclusive(t *testing.T) {
 	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(8), Inclusive(12), []string{"record 1"})
-	// testFilter(t, readmeExample, "area (cube)", "side", Inclusive(8), Inclusive(25), []string{"record 1", "record 2"})
-	// testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(20), []string{"record 1", "record 2"})
-	// testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Exclusive(20), []string{})
-	// testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Exclusive(10), []string{})
-	// testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Inclusive(10), []string{})
-	// testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Exclusive(10), []string{})
-	// testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(10), []string{"record 1"})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(8), Inclusive(25), []string{"record 1", "record 2"})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(20), []string{"record 1", "record 2"})
+	testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Exclusive(20), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Exclusive(10), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Exclusive(10), Inclusive(10), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Exclusive(10), []string{})
+	testFilter(t, readmeExample, "area (cube)", "side", Inclusive(10), Inclusive(10), []string{"record 1"})
 }
 func TestQueryAnd(t *testing.T) {
 	facetEngine, _, _ := NewFacetEngine("["+object1+","+object2+"]", defaultFacetPath)
