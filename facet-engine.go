@@ -7,10 +7,12 @@ import (
 	"strings"
 )
 
-// FacetGroups is a map of FacetGroup
-type FacetGroups struct {
-	FacetGroup   map[string]*FacetGroup
-	RecordLookup RecordLookup
+// FacetEngine is a map of FacetGroup
+type FacetEngine struct {
+	RecordLookup   RecordLookup
+	facetPath      *FacetPath
+	ids            *Set
+	genericObjects []map[string]interface{}
 }
 
 // RecordLookup Set of records
@@ -30,36 +32,14 @@ type Record struct {
 	ID    string
 }
 
-// NewFacetGroups create a new one.
-func NewFacetGroups() *FacetGroups {
-	return &FacetGroups{
-		FacetGroup:   map[string]*FacetGroup{},
+// NewFacetEngine create a new one.
+func NewFacetEngine(dataJSON string, config *FacetPath) (*FacetEngine, map[string]*FacetGroup, error) {
+	facetEngine := &FacetEngine{
 		RecordLookup: map[string][]*Record{},
+		ids:          NewSet(),
 	}
-}
-
-// Get return a facetgroup by key
-func (f *FacetGroups) Get(key string) *FacetGroup {
-	if value, ok := f.FacetGroup[key]; ok {
-		return value
-	}
-	return nil
-}
-
-// Lookup return a facetgroup by key and a boolean of whether it exists
-func (f *FacetGroups) Lookup(key string) (*FacetGroup, bool) {
-	value, ok := f.FacetGroup[key]
-	return value, ok
-}
-
-// Len number of facet groups
-func (f *FacetGroups) Len() int {
-	return len(f.FacetGroup)
-}
-
-// Set set a facetgroup by key
-func (f *FacetGroups) Set(key string, value *FacetGroup) {
-	f.FacetGroup[key] = value
+	facetGroups, err := facetEngine.Initialize(dataJSON, config)
+	return facetEngine, facetGroups, err
 }
 
 // FacetGroup contains the description of a facet.
@@ -152,18 +132,18 @@ func (e exclusive) Value() float64 {
 }
 
 // Query filter the records and return ids that match the filters
-func (f FacetGroups) Query(query *Query) ([]string, error) {
+func (f FacetEngine) Query(query *Query) ([]string, map[string]*FacetGroup, error) {
 	if len(query.Filters) == 0 {
-		return nil, fmt.Errorf("no query filters were added.  This query all ids")
+		return nil, nil, fmt.Errorf("no query filters were added.  This query all ids")
 	}
 	listOfMaps := make([]map[string]bool, len(query.Filters))
-	results := []string{}
+	f.ids = NewSet()
 	for i, filter := range query.Filters {
 		records, ok := f.RecordLookup[fmt.Sprintf("%s - %s", filter.FacetGroupName, filter.FacetName)]
 		if ok {
 			matchingIDMap, err := toStringMap(records, filter)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			listOfMaps[i] = matchingIDMap
 		}
@@ -176,10 +156,12 @@ func (f FacetGroups) Query(query *Query) ([]string, error) {
 			inAll = inThis && inAll
 		}
 		if inAll {
-			results = append(results, k)
+			f.ids.Add(k)
 		}
 	}
-	return results, nil
+
+	facetGroups, err := f.GetFacets()
+	return f.ids.ToArray(), facetGroups, err
 }
 
 func toStringMap(records []*Record, filter filter) (map[string]bool, error) {
@@ -197,22 +179,27 @@ func toStringMap(records []*Record, filter filter) (map[string]bool, error) {
 	return results, nil
 }
 
-// CreateFacetGroups take an json string representation of an array of objects and turn them in to facets.
+// Initialize take an json string representation of an array of objects and turn them in to facets.
 // facetPaths is a query of which facets in the data to use to create facets.
-func CreateFacetGroups(jsonData string, facetPath *FacetPath) (*FacetGroups, error) {
-	facetGroups := NewFacetGroups()
-
+func (f *FacetEngine) Initialize(jsonData string, facetPath *FacetPath) (map[string]*FacetGroup, error) {
 	if strings.TrimSpace(jsonData) == "" {
-		return facetGroups, nil
+		return f.GetFacets()
 	}
 	var genericObjects []map[string]interface{}
 	err := json.Unmarshal([]byte(jsonData), &genericObjects)
 	if err != nil {
 		return nil, err
 	}
+	f.genericObjects = genericObjects
+	f.facetPath = facetPath
+	return f.GetFacets()
+}
 
-	for _, genericObject := range genericObjects {
-		idPaths := facetPath.IDDotNotation
+// GetFacets return a list of facets for the list of ids.  If ids is nil, return all possible facets.
+func (f *FacetEngine) GetFacets() (map[string]*FacetGroup, error) {
+	facetGroups := map[string]*FacetGroup{}
+	for _, genericObject := range f.genericObjects {
+		idPaths := f.facetPath.IDDotNotation
 		if idPaths == "" {
 			idPaths = "id"
 		}
@@ -220,10 +207,13 @@ func CreateFacetGroups(jsonData string, facetPath *FacetPath) (*FacetGroups, err
 		if strings.TrimSpace(id) == "" {
 			return nil, fmt.Errorf("found record with no id")
 		}
-		arrayPaths := strings.Split(facetPath.ArrayDotNotation, ".")
-		namePaths := strings.Split(facetPath.NameFieldDotNotation, ".")
-		nameMetaPaths := strings.Split(facetPath.NameMetaDotNotation, ".")
-		valuePaths := strings.Split(facetPath.ValueMapDotNotation, ".")
+		if f.ids.Len() > 0 && !f.ids.Contains(id) {
+			continue
+		}
+		arrayPaths := strings.Split(f.facetPath.ArrayDotNotation, ".")
+		namePaths := strings.Split(f.facetPath.NameFieldDotNotation, ".")
+		nameMetaPaths := strings.Split(f.facetPath.NameMetaDotNotation, ".")
+		valuePaths := strings.Split(f.facetPath.ValueMapDotNotation, ".")
 		arraysObject := getAtPathArray(genericObject, arrayPaths)
 		for _, object := range arraysObject {
 			o := object.(map[string]interface{})
@@ -234,25 +224,30 @@ func CreateFacetGroups(jsonData string, facetPath *FacetPath) (*FacetGroups, err
 			if len(values) == 0 || strings.TrimSpace(name) == "" || strings.TrimSpace(nameMeta) == "" {
 				continue
 			}
-			if _, ok := facetGroups.Lookup(key); !ok {
-				facetGroups.Set(key, &FacetGroup{
+			if _, ok := facetGroups[key]; !ok {
+				facetGroups[key] = &FacetGroup{
 					Name:   key,
 					Facets: map[string]*Facet{},
-				})
+				}
 			}
 
 			for k, v := range values {
 				facetKey := strings.ToLower(k)
-				facetGroups.RecordLookup.Add(fmt.Sprintf("%s - %s", key, facetKey), &Record{
+				f.RecordLookup.Add(fmt.Sprintf("%s - %s", key, facetKey), &Record{
 					ID:    id,
 					Value: v,
 				})
-				facetGroup := facetGroups.Get(key)
+				facetGroup := facetGroups[key]
 				if _, ok := facetGroup.Facets[facetKey]; !ok {
 					facetGroup.Facets[facetKey] = &Facet{
 						Name:   facetKey,
 						Values: NewSet(),
 					}
+				}
+
+				_, err := strconv.ParseFloat(v, 64)
+				if err != nil {
+					return nil, err
 				}
 				facetGroup.Facets[facetKey].Values.Add(v)
 			}
