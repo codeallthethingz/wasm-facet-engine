@@ -22,7 +22,7 @@ Ensure that this wasm file is served with the mime-type `application/wasm` or it
 This will add the following functions into the global scope
 - `facetEngineLoad(facetEngineWasmLocation)` - load the wasm file into memory. Default: `facet-engine.wasm`
 - `facetEngineInitializeObjects(stringifiedConfiguration, stringifiedObjectArray)` - send in the records that you're going to work with and the configuration about which data elements are to be used as facets. Facets are sent back to `facetEngineCallbackFacets(stringifiedFacets)`
-- `facetEngineAddFilter('filterGroupName', 'metricName', true, 7, false, 12)` - add a filter to the state.  The boolean parameters specify that the range is (true = inclusive) or (false = exclusive)
+- `facetEngineAddFilter('facetGroupName', 'facetName', true, 7, false, 12)` - add a filter to the state.  The boolean parameters specify that the range is (true = inclusive) or (false = exclusive)
 - `facetEngineRemoveFilter(filterName)` - remove a filter by name
 - `facetEngineClearFilters()` - remove all filters
 - `facetEngineQuery()` - return a json array of id's that match all the set filters.  Results are sent to a callback invocation of a function you should add called `facetEngineCallbackResults(stringifiedIdArray)`.  Facets are sent back to `facetEngineCallbackFacets(stringifiedFacets)`
@@ -86,7 +86,6 @@ facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
 Add a filter and run it
 
 ```javascript
-query.AddFilter()
 facetEngineAddFilter("area (cube)", "side", true, 8.0, false, 12.0)
 facetEngineQuery()
 function facetEngineCallbackResults(stringifiedIdArray) {

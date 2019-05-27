@@ -44,23 +44,23 @@ func NewFacetEngine(dataJSON string, config *FacetPath) (*FacetEngine, map[strin
 
 // FacetGroup contains the description of a facet.
 type FacetGroup struct {
-	Name   string
-	Facets map[string]*Facet
+	Name   string            `json:"name,omitempty"`
+	Facets map[string]*Facet `json:"facets,omitempty"`
 }
 
 // Facet contains the values of a facet
 type Facet struct {
-	Name   string
-	Values *Set
+	Name   string `json:"name,omitempty"`
+	Values *Set   `json:"values,omitempty"`
 }
 
 // FacetPath How to get out data from
 type FacetPath struct {
-	IDDotNotation        string
-	ArrayDotNotation     string
-	NameMetaDotNotation  string
-	NameFieldDotNotation string
-	ValueMapDotNotation  string
+	IDDotNotation        string `json:"idDotNotation,omitempty"`
+	ArrayDotNotation     string `json:"arrayDotNotation,omitempty"`
+	NameMetaDotNotation  string `json:"nameMetaDotNotation,omitempty"`
+	NameFieldDotNotation string `json:"nameFieldDotNotation,omitempty"`
+	ValueMapDotNotation  string `json:"valueMapDotNotation,omitempty"`
 }
 
 // Query represents a set of filters to be applied to the data.

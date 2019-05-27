@@ -105,7 +105,7 @@ func TestMarshalSet(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	require.Equal(t, "{\"area (cube)\":{\"Name\":\"area (cube)\",\"Facets\":{\"side\":{\"Name\":\"side\",\"Values\":[\"10\",\"20\"]}}}}", string(data))
+	require.Equal(t, "{\"area (cube)\":{\"name\":\"area (cube)\",\"facets\":{\"side\":{\"name\":\"side\",\"values\":[\"10\",\"20\"]}}}}", string(data))
 	decoded := map[string]*FacetGroup{}
 	err = json.Unmarshal(data, &decoded)
 	if err != nil {

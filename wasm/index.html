@@ -1,57 +1,105 @@
 <!doctype html>
-<!--
-Copyright 2018 The Go Authors. All rights reserved.
-Use of this source code is governed by a BSD-style
-license that can be found in the LICENSE file.
--->
 <html>
 
 <head>
   <meta charset="utf-8">
   <title>Go wasm</title>
+  <link rel="icon" type="image/jpg" href="favicon.jpg">
 </head>
 
 <body>
-  <!--
-	Add the following polyfill for Microsoft Edge 17/18 support:
-	<script src="https://cdn.jsdelivr.net/npm/text-encoding@0.7.0/lib/encoding.min.js"></script>
-	(see https://caniuse.com/#feat=textencoder)
-	-->
-  <script src="wasm_exec.js"></script>
+
+  <div style="width:1200px; float:right">
+    <h2>Records</h2>
+    <div id="records"></div>
+  </div>
+  <div style="width:200px; float: left">
+    <h2>Refinements</h2>
+    <div id="refinements"></div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+  <script src="facet-engine.js"></script>
+
   <script>
-    if (!WebAssembly.instantiateStreaming) { // polyfill
-      WebAssembly.instantiateStreaming = async (resp, importObject) => {
-        const source = await (await resp).arrayBuffer();
-        return await WebAssembly.instantiate(source, importObject);
-      };
+    createRecords(["record 1", "record 2"])
+    let jsonData = [
+      {
+        "id": "record 1",
+        "measurements": [
+          {
+            "measurementName": "area",
+            "metrics": {
+              "metricName": "cube",
+              "measurements": {
+                "side": "10"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "record 2",
+        "measurements": [
+          {
+            "measurementName": "area",
+            "metrics": {
+              "metricName": "cube",
+              "measurements": {
+                "side": "20"
+              }
+            }
+          }
+        ]
+      }
+    ]
+
+    facetEngineLoad('facet-engine.wasm', function () {
+      let config = {
+        arrayDotNotation: "measurements",
+        nameFieldDotNotation: "measurementName",
+        nameMetaDotNotation: "metrics.metricName",
+        valueMapDotNotation: "metrics.measurements",
+      }
+      // this will call back to facetEngineCallbackFacets(stringifiedFacets)
+      facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
+      // facetEngineAddFilter("area (cube)", "side", false, 10.0, false, 22.0)
+      // facetEngineQuery()
+    })
+
+    function facetEngineCallbackFacets(facetGroupsJson) {
+      facetGroups = JSON.parse(facetGroupsJson)
+      console.dir(facetGroups)
+      let html = ''
+      Object.keys(facetGroups).forEach(function (key1) {
+        let facetGroup = facetGroups[key1];
+        html += '<div class="group"><h3>' + key1 + '</h3></div>'
+        Object.keys(facetGroup.facets).forEach(function (key2) {
+          let facet = facetGroup.facets[key2]
+          html += '<div class="facet"><h4>' + key2 + '</h4></div>'
+          console.log(facet.values);
+          facet.values.forEach((value) => {
+            html += '<div class="facet-value">' + value + '</div>'
+          })
+        })
+      });
+
+      $("#refinements").append(html)
+
     }
 
-    const go = new Go();
-    let mod, inst;
-    WebAssembly.instantiateStreaming(fetch("facet-engine.wasm"), go.importObject).then((result) => {
-      mod = result.module;
-      inst = result.instance;
-      document.getElementById("runButton").disabled = false;
-    }).catch((err) => {
-      console.error(err);
-    });
+    function facetEngineCallbackRecords(idsJson) {
+      ids = JSON.parse(idsJson)
+      createRecords(ids)
+    }
 
-    async function run() {
-      // console.clear();
-      await go.run(inst);
-      inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
+    function createRecords(ids) {
+      let html = ''
+      ids.forEach((id) => {
+        html += '<div>' + id + '</div>';
+      })
+      $("#records").append(html)
     }
-  </script>
 
-  <button onClick="run();" id="runButton" disabled>Run</button>
-  <button onClick="doSomething();" id="sayHiButton">Say Hi</button>
-  <script>
-    function doSomething() {
-      sayHi(JSON.stringify({ object: "with-value" }));
-    }
-    function facetEngineCallback(arg) {
-      console.log("callback value: " + arg);
-    }
   </script>
 </body>
 
