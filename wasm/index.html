@@ -61,7 +61,7 @@ license that can be found in the LICENSE file.
       }
       // this will call back to facetEngineCallbackFacets(stringifiedFacets)
       facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData))
-      facetEngineAddFilter("area (cube)", "side", true, 10.0, false, 22.0)
+      facetEngineAddFilter("area (cube)", "side", false, 10.0, false, 22.0)
       facetEngineQuery()
     })
 

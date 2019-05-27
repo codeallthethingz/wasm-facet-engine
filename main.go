@@ -7,7 +7,7 @@ import (
 	"github.com/gopherjs/gopherwasm/js"
 )
 
-var facetGroups *FacetGroups
+var facetEngine *FacetEngine
 var query = &Query{}
 
 // JSClearFilters remove all the filters
@@ -39,7 +39,7 @@ func JSAddFilter(args []js.Value) {
 // JSQuery wasm interface to query the facet groups
 func JSQuery(args []js.Value) {
 	fmt.Println("query called")
-	ids, err := facetGroups.Query(query)
+	ids, facetGroups, err := facetEngine.Query(query)
 	if err != nil {
 		panic(err)
 	}
@@ -47,8 +47,13 @@ func JSQuery(args []js.Value) {
 	if err != nil {
 		panic(err)
 	}
+	facetGroupBytes, err := json.Marshal(facetGroups)
+	if err != nil {
+		panic(err)
+	}
 
 	js.Global().Call("facetEngineCallbackRecords", string(idsByets))
+	js.Global().Call("facetEngineCallbackFacets", string(facetGroupBytes))
 }
 
 // JSInitializeObjects wasm interface to take the data and parse out the facets
@@ -65,7 +70,8 @@ func JSInitializeObjects(args []js.Value) {
 	if err != nil {
 		panic(err)
 	}
-	facetGroups, err = CreateFacetGroups(dataJSON, facetPath)
+	var facetGroups map[string]*FacetGroup
+	facetEngine, facetGroups, err = NewFacetEngine(dataJSON, facetPath)
 	if err != nil {
 		panic(err)
 	}
@@ -86,7 +92,6 @@ func registerCallbacks() {
 
 func main() {
 	c := make(chan struct{}, 0)
-	fmt.Println("hello")
 	registerCallbacks()
 	<-c
 }
