@@ -10,6 +10,17 @@ type Set struct {
 	list map[string]struct{} //empty structs occupy 0 memory
 }
 
+// Len return the length of the set
+func (s *Set) Len() int {
+	return len(s.list)
+}
+
+// Contains does this value exist in the set.
+func (s *Set) Contains(v string) bool {
+	_, ok := s.list[v]
+	return ok
+}
+
 // Add a value
 func (s *Set) Add(v string) {
 	s.list[v] = struct{}{}
