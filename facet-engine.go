@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // FacetEngine is a map of FacetGroup
@@ -170,7 +169,6 @@ func (f FacetEngine) Query() ([]string, map[string]*FacetGroup, error) {
 		fmt.Println("results restricted to nothing, returning nothing.")
 		return []string{}, map[string]*FacetGroup{}, nil
 	}
-	then := now()
 	listOfMaps := make([]map[string]bool, len(f.query.Filters))
 	f.ids = NewSet()
 	for i, filter := range f.query.Filters {
@@ -190,13 +188,8 @@ func (f FacetEngine) Query() ([]string, map[string]*FacetGroup, error) {
 			f.ids.Add(k)
 		}
 	}
-	fmt.Printf("search time: %d\n", now()-then)
 	facetGroups, err := f.GetFacets()
 	return f.ids.ToArray(), facetGroups, err
-}
-
-func now() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
 func toStringMap(records []*Record, filter filter) map[string]bool {
@@ -234,7 +227,6 @@ func (f *FacetEngine) Initialize(jsonData string, facetPath *FacetPath) (map[str
 
 // GetFacets return a list of facets for the list of ids.  If ids is nil, return all possible facets.
 func (f *FacetEngine) GetFacets() (map[string]*FacetGroup, error) {
-	then := now()
 	facetGroups := map[string]*FacetGroup{}
 	for _, genericObject := range f.genericObjects {
 		idPaths := f.facetPath.IDDotNotation
@@ -292,7 +284,6 @@ func (f *FacetEngine) GetFacets() (map[string]*FacetGroup, error) {
 			}
 		}
 	}
-	fmt.Printf("facet time: %d\n", now()-then)
 	return facetGroups, nil
 }
 
