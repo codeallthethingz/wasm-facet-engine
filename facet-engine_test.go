@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -44,15 +43,14 @@ func TestEmptyQuery(t *testing.T) {
 	facetEngine, _, _ := NewFacetEngine(readmeExample, readmeFacetPath)
 	ids, facetGroups, err := facetEngine.Query()
 	require.Nil(t, err)
-	fmt.Println(ids, facetGroups, err)
 	require.ElementsMatch(t, []string{"record 1", "record 2"}, ids)
 	require.Equal(t, 1, len(facetGroups))
 }
 
 func TestBadNumber(t *testing.T) {
 	_, _, err := NewFacetEngine("["+object9+"]", defaultFacetPath)
-	require.Contains(t, err.Error(), "strconv.ParseFloat")
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "strconv.ParseFloat")
 }
 
 func TestQueryInclusiveExclusive(t *testing.T) {
