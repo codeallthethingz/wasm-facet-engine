@@ -7,7 +7,19 @@ The advantage of this approach is you can have very rich faceting without explod
 
 The "small number" has yet to be determined, but performance metrics will be posted here when we know more.
 
+**0.0.1 performance**
+
+|Record Count|Initialization|Search
+|--------:|----------:|--------:
+| 1       | 2 ms      | 1 ms    
+| 100     | 47 ms     | 2 ms    
+| 1,000   | 528 ms    | 15 ms  
+| 10,000  | 2,776 ms  | 42 ms
+| 100,000 | 34,553 ms | 544 ms 
+
 ## Installation
+
+*The bundling is not yet implemented, you'll need to figure everything out from source currently*
 
 Add the js bundle to your application
 
