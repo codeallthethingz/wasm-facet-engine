@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/gopherjs/gopherwasm/js"
 )
@@ -16,22 +15,30 @@ func main() {
 	<-c
 }
 
+func registerCallbacks() {
+	js.Global().Set("facetEngineInitializeObjects", js.NewCallback(JSInitializeObjects))
+	js.Global().Set("facetEngineQuery", js.NewCallback(JSQuery))
+	js.Global().Set("facetEngineAddFilter", js.NewCallback(JSAddFilter))
+	js.Global().Set("facetEngineClearFilters", js.NewCallback(JSClearFilters))
+}
+
 // JSClearFilters remove all the filters
 func JSClearFilters(args []js.Value) {
-	fmt.Println("clear filters")
 	facetEngine.ClearFilters()
 }
 
 // JSAddFilter addes a filter to the query object
 func JSAddFilter(args []js.Value) {
-	fmt.Println("add filter called")
 	facetGroupName := args[0].String()
 	facetName := args[1].String()
 	inclusiveMin := args[2].Bool()
 	min := args[3].Float()
 	inclusiveMax := args[4].Bool()
 	max := args[5].Float()
-	addFilter(facetGroupName, facetName, inclusiveMin, min, inclusiveMax, max)
+	err := addFilter(facetGroupName, facetName, inclusiveMin, min, inclusiveMax, max)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func addFilter(facetGroupName string, facetName string, inclusiveMin bool, min float64, inclusiveMax bool, max float64) error {
@@ -48,7 +55,6 @@ func addFilter(facetGroupName string, facetName string, inclusiveMin bool, min f
 
 // JSQuery wasm interface to query the facet groups
 func JSQuery(args []js.Value) {
-	fmt.Println("query called")
 	ids, facetGroups, err := query()
 	if err != nil {
 		panic(err)
@@ -75,7 +81,6 @@ func query() (string, string, error) {
 
 // JSInitializeObjects wasm interface to take the data and parse out the facets
 func JSInitializeObjects(args []js.Value) {
-	fmt.Println("facetEngineInitializeObjects called")
 	configString := args[0].String()
 	dataJSON := args[1].String()
 	facetGroupsString, err := initializeObjects(configString, dataJSON)
@@ -86,9 +91,6 @@ func JSInitializeObjects(args []js.Value) {
 }
 
 func initializeObjects(configString string, dataJSON string) (string, error) {
-	fmt.Println("Config: " + configString)
-	fmt.Println("Data: " + dataJSON)
-
 	facetPath := &FacetPath{}
 	err := json.Unmarshal([]byte(configString), facetPath)
 	if err != nil {
@@ -103,13 +105,5 @@ func initializeObjects(configString string, dataJSON string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("facets: " + string(facetGroupsBytes))
 	return string(facetGroupsBytes), nil
-}
-
-func registerCallbacks() {
-	js.Global().Set("facetEngineInitializeObjects", js.NewCallback(JSInitializeObjects))
-	js.Global().Set("facetEngineQuery", js.NewCallback(JSQuery))
-	js.Global().Set("facetEngineAddFilter", js.NewCallback(JSAddFilter))
-	js.Global().Set("facetEngineClearFilters", js.NewCallback(JSClearFilters))
 }

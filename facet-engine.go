@@ -14,6 +14,7 @@ type FacetEngine struct {
 	ids            *Set
 	allIds         *Set
 	query          *Query
+	initialized    bool
 	genericObjects []map[string]interface{}
 }
 
@@ -81,7 +82,6 @@ type filter struct {
 
 // AddFilter adds a set of criteria that records will have to match.
 func (f *FacetEngine) AddFilter(facetGroupName string, facetName string, min Range, max Range) error {
-
 	if f.query.Filters == nil {
 		f.query.Filters = []filter{}
 	}
@@ -127,6 +127,7 @@ type inclusive struct {
 func (i inclusive) IsInclusive() bool {
 	return true
 }
+
 func (i inclusive) Value() float64 {
 	return i.value
 }
@@ -138,6 +139,7 @@ type exclusive struct {
 func (e exclusive) IsInclusive() bool {
 	return false
 }
+
 func (e exclusive) Value() float64 {
 	return e.value
 }
@@ -158,8 +160,14 @@ func (f *FacetEngine) resetAllIds() {
 // Query filter the records and return ids that match the filters
 func (f FacetEngine) Query() ([]string, map[string]*FacetGroup, error) {
 	if len(f.query.Filters) == 0 {
+		fmt.Println("no filters returning all")
 		facetGroups, err := f.GetFacets()
-		return f.ids.ToArray(), facetGroups, err
+		f.resetAllIds()
+		return f.allIds.ToArray(), facetGroups, err
+	}
+	if f.ids.Len() == 0 {
+		fmt.Println("results restricted to nothing, returning nothing.")
+		return []string{}, map[string]*FacetGroup{}, nil
 	}
 	listOfMaps := make([]map[string]bool, len(f.query.Filters))
 	f.ids = NewSet()
@@ -180,7 +188,6 @@ func (f FacetEngine) Query() ([]string, map[string]*FacetGroup, error) {
 			f.ids.Add(k)
 		}
 	}
-
 	facetGroups, err := f.GetFacets()
 	return f.ids.ToArray(), facetGroups, err
 }
@@ -214,6 +221,7 @@ func (f *FacetEngine) Initialize(jsonData string, facetPath *FacetPath) (map[str
 
 	facetGroups, err := f.GetFacets()
 	f.resetAllIds()
+	f.initialized = true
 	return facetGroups, err
 }
 
@@ -229,7 +237,7 @@ func (f *FacetEngine) GetFacets() (map[string]*FacetGroup, error) {
 		if strings.TrimSpace(id) == "" {
 			return nil, fmt.Errorf("found record with no id")
 		}
-		if f.ids.Len() > 0 && !f.ids.Contains(id) {
+		if f.initialized && !f.ids.Contains(id) {
 			continue
 		}
 		f.allIds.Add(id)
@@ -294,6 +302,7 @@ func getAtPathString(data map[string]interface{}, path []string) string {
 	}
 	return obj.(string)
 }
+
 func getAtPathMap(data map[string]interface{}, path []string) map[string]string {
 	obj := getAtPath(data, path)
 	if obj == nil {
