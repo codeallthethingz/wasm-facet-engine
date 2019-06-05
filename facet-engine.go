@@ -160,13 +160,11 @@ func (f *FacetEngine) resetAllIds() {
 // Query filter the records and return ids that match the filters
 func (f FacetEngine) Query() ([]string, map[string]*FacetGroup, error) {
 	if len(f.query.Filters) == 0 {
-		fmt.Println("no filters returning all")
 		facetGroups, err := f.GetFacets()
 		f.resetAllIds()
 		return f.allIds.ToArray(), facetGroups, err
 	}
 	if f.ids.Len() == 0 {
-		fmt.Println("results restricted to nothing, returning nothing.")
 		return []string{}, map[string]*FacetGroup{}, nil
 	}
 	listOfMaps := make([]map[string]bool, len(f.query.Filters))

@@ -13,3 +13,5 @@
 .vscode
 coverage.txt
 *.wasm
+.idea
+wasm-facet-engine
