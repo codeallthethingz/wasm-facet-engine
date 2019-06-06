@@ -79,7 +79,7 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
       writeSync(fd, buf) {
         outputBuf += decoder.decode(buf);
         const nl = outputBuf.lastIndexOf("\n");
-        if (nl != -1) {
+        if (nl !== -1) {
           console.log(outputBuf.substr(0, nl));
           outputBuf = outputBuf.substr(nl + 1);
         }
@@ -108,7 +108,7 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
     };
   }
 
-  const encoder = new TextEncoder("utf-8");
+  const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8");
 
   global.Go = class {
@@ -427,7 +427,6 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
     async run(instance) {
       this._inst = instance;
       this._values = [
-        // TODO: garbage collection
         NaN,
         0,
         null,
