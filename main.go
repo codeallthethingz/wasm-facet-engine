@@ -16,10 +16,10 @@ func main() {
 }
 
 func registerCallbacks() {
-	js.Global().Set("facetEngineInitializeObjects", js.NewCallback(JSInitializeObjects))
-	js.Global().Set("facetEngineQuery", js.NewCallback(JSQuery))
-	js.Global().Set("facetEngineAddFilter", js.NewCallback(JSAddFilter))
-	js.Global().Set("facetEngineClearFilters", js.NewCallback(JSClearFilters))
+	js.Global().Get("facetEngine").Set("initializeObjects", js.NewCallback(JSInitializeObjects))
+	js.Global().Get("facetEngine").Set("query", js.NewCallback(JSQuery))
+	js.Global().Get("facetEngine").Set("addFilter", js.NewCallback(JSAddFilter))
+	js.Global().Get("facetEngine").Set("clearFilters", js.NewCallback(JSClearFilters))
 }
 
 // JSClearFilters remove all the filters
@@ -59,8 +59,8 @@ func JSQuery(args []js.Value) {
 	if err != nil {
 		panic(err)
 	}
-	js.Global().Call("facetEngineCallbackRecords", ids)
-	js.Global().Call("facetEngineCallbackFacets", facetGroups)
+	args[0].Invoke(ids)
+	args[1].Invoke(facetGroups)
 }
 
 func query() (string, string, error) {
@@ -87,7 +87,7 @@ func JSInitializeObjects(args []js.Value) {
 	if err != nil {
 		panic(err)
 	}
-	js.Global().Call("facetEngineCallbackFacets", facetGroupsString)
+	args[2].Invoke(facetGroupsString)
 }
 
 func initializeObjects(configString string, dataJSON string) (string, error) {

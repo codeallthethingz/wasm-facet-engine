@@ -1,6 +1,7 @@
 let facetEngineGo, facetEngineMod, facetEngineInst;
+let facetEngine = {}
 
-function facetEngineLoad(facetEngineWasmLocation, cb) {
+facetEngine.load = function(facetEngineWasmLocation, cb) {
   let wasmLocation = "facet-engine.wasm";
   if (facetEngineWasmLocation) {
     wasmLocation = facetEngineWasmLocation;
@@ -29,7 +30,7 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
 }
 
 // -- wasm-exec.js
-(() => {
+facetEngine.initialize = function() {
   if (typeof global !== "undefined") {
     // global already exists
   } else if (typeof window !== "undefined") {
@@ -42,6 +43,8 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
     );
   }
 
+
+  global.facetEngine = facetEngine;
   // Map web browser API and Node.js API to a single common API (preferring web standards over Node.js API).
   const isNodeJS = global.process && global.process.title === "node";
   if (isNodeJS) {
@@ -66,6 +69,7 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
     global.TextEncoder = util.TextEncoder;
     global.TextDecoder = util.TextDecoder;
   } else {
+    console.log("here not node")
     let outputBuf = "";
     global.fs = {
       constants: {
@@ -499,34 +503,8 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
         return event.result;
       };
     }
-  };
-
-  if (isNodeJS) {
-    if (process.argv.length < 3) {
-      process.stderr.write(
-        "usage: go_js_wasm_exec [wasm binary] [arguments]\n"
-      );
-      process.exit(1);
-    }
-
-    const go = new Go();
-    go.argv = process.argv.slice(2);
-    go.env = Object.assign({ TMPDIR: require("os").tmpdir() }, process.env);
-    go.exit = process.exit;
-    WebAssembly.instantiate(fs.readFileSync(process.argv[2]), go.importObject)
-      .then(result => {
-        process.on("exit", code => {
-          // Node.js exits if no event handler is pending
-          if (code === 0 && !go.exited) {
-            // deadlock, make Go print error and stack traces
-            go._pendingEvent = { id: 0 };
-            go._resume();
-          }
-        });
-        return go.run(result.instance);
-      })
-      .catch(err => {
-        throw err;
-      });
   }
-})();
+
+}
+
+facetEngine.initialize();

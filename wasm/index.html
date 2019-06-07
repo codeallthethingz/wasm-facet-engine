@@ -9,33 +9,21 @@
 
 <body>
   <button onclick="query()">query</button>
-  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
   <script src="facet-engine.js"></script>
-
+  <script src="setup-data.js"></script>
 
   <script>
-    let records = []
-    let queriesExecuted = 0
-    let metrics = createMetrics()
     let recordCount = 10;
-    let recordCountTiming = recordCount
-    for (let i = 0; i < recordCount; i++) {
-      let record = {
-        "id": "record " + (i + 1),
-        "measurements": []
-      }
-      for (let k = 0; k < parseInt((Math.random() * 5)) + 1; k++) {
-        record.measurements.push({
-          "measurementName": "a" + (parseInt(Math.random() * 10)),
-          "metrics": replaceX(metrics[parseInt(Math.random() * metrics.length)])
-        })
-      }
-      records.push(record)
-    }
+    
+    let queriesExecuted = 0
     let t
     let timing = {}
+    let recordCountTiming = recordCount
 
-    facetEngineLoad('facet-engine.wasm', function () {
+    let records = createRecords(recordCount)
+
+
+    facetEngine.load('facet-engine.wasm', function () {
       let config = {
         arrayDotNotation: "measurements",
         nameFieldDotNotation: "measurementName",
@@ -44,7 +32,7 @@
       }
       console.log('init starting')
       t = new Date().getTime()
-      facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(records))
+      facetEngine.initializeObjects(JSON.stringify(config), JSON.stringify(records), callbackFacets)
       timing['initialization'] = new Date().getTime() - t
       query()
     })
@@ -68,8 +56,8 @@
       let groupName = measurement.measurementName + ' (' + measurement.metrics.metricName + ')'
       let facetName = measurementKey
       t = new Date().getTime()
-      facetEngineAddFilter(groupName, facetName, true, 0, false, 90)
-      facetEngineQuery()
+      facetEngine.addFilter(groupName, facetName, true, 0, false, 90)
+      facetEngine.query(callbackRecords, callbackFacets)
       queriesExecuted++
       if (queriesExecuted < 3) {
         query()
@@ -78,116 +66,16 @@
       }
     }
 
-    function facetEngineCallbackFacets(facetGroupsJson) {
+    function callbackFacets(facetGroupsJson) {
       timing['callback facets (' + recordCountTiming + ')'] = new Date().getTime() - t
-      // console.log(facetGroupsJson)
     }
 
-    function facetEngineCallbackRecords(idsJson) {
-      // timing['callback records (' + recordCountTiming + ')'] = new Date().getTime() - t
+    function callbackRecords(idsJson) {
       recordCountTiming = JSON.parse(idsJson).length
       console.log(JSON.parse(idsJson).length)
     }
 
-    function replaceX(metric) {
-      newMetric = {
-        metricName: metric.metricName,
-        measurements: {}
-      };
-      Object.keys(metric.measurements).forEach(function (key) {
-        newMetric.measurements[key] = parseInt(Math.random() * 100)
-      });
-      return newMetric
-    }
-    function createMetrics() {
-      let metrics = []
-      metrics.push({
-        "metricName": "cube",
-        "measurements": {
-          "side": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "screwthread",
-        "measurements": {
-          "height": "X",
-          "diameter": "X",
-          "pitch": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "sphere",
-        "measurements": {
-          "diameter": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "cuboid",
-        "measurements": {
-          "width": "X",
-          "height": "X",
-          "length": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "cylinder",
-        "measurements": {
-          "diameter": "X",
-          "height": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "hexcube",
-        "measurements": {
-          "diameter": "X",
-          "height": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "pentcube",
-        "measurements": {
-          "diameter": "X",
-          "height": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "polygon",
-        "measurements": {
-          "diameter": "X",
-          "height": "X",
-          "sidecount": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "oval-cylinder",
-        "measurements": {
-          "radius-major": "X",
-          "radius-minor": "X",
-          "height": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "tricube",
-        "measurements": {
-          "width-hypotenuse": "X",
-          "width-opposite": "X",
-          "width-adjacent": "X",
-          "height": "X"
-        }
-      })
-      metrics.push({
-        "metricName": "clip",
-        "measurements": {
-          "lip": "X",
-          "lip-height": "X",
-          "lip-width": "X",
-          "height": "X",
-          "width": "X",
-          "length": "X"
-        }
-      })
-      return metrics
-    }
+
   </script>
 </body>
 
