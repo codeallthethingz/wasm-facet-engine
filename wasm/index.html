@@ -9,7 +9,6 @@
 
 <body>
   <button onclick="query()">query</button>
-  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
   <script src="facet-engine.js"></script>
 
 
@@ -35,7 +34,7 @@
     let t
     let timing = {}
 
-    facetEngineLoad('facet-engine.wasm', function () {
+    facetEngine.load('facet-engine.wasm', function () {
       let config = {
         arrayDotNotation: "measurements",
         nameFieldDotNotation: "measurementName",
