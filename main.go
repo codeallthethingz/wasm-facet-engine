@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+
 	"github.com/gopherjs/gopherwasm/js"
 )
 
@@ -58,8 +59,8 @@ func JSQuery(args []js.Value) {
 	if err != nil {
 		panic(err)
 	}
-	js.Global().Get("facetEngine").Call("callbackRecords", ids)
-	js.Global().Get("facetEngine").Call("callbackFacets", facetGroups)
+	args[0].Invoke(ids)
+	args[1].Invoke(facetGroups)
 }
 
 func query() (string, string, error) {
@@ -86,7 +87,7 @@ func JSInitializeObjects(args []js.Value) {
 	if err != nil {
 		panic(err)
 	}
-	js.Global().Get("facetEngine").Call("callbackFacets", facetGroupsString)
+	args[2].Invoke(facetGroupsString)
 }
 
 func initializeObjects(configString string, dataJSON string) (string, error) {
