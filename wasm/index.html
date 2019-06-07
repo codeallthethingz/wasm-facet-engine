@@ -44,7 +44,7 @@
       }
       console.log('init starting')
       t = new Date().getTime()
-      facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(records))
+      facetEngine.initializeObjects(JSON.stringify(config), JSON.stringify(records))
       timing['initialization'] = new Date().getTime() - t
       query()
     })
@@ -68,8 +68,8 @@
       let groupName = measurement.measurementName + ' (' + measurement.metrics.metricName + ')'
       let facetName = measurementKey
       t = new Date().getTime()
-      facetEngineAddFilter(groupName, facetName, true, 0, false, 90)
-      facetEngineQuery()
+      facetEngine.addFilter(groupName, facetName, true, 0, false, 90)
+      facetEngine.query()
       queriesExecuted++
       if (queriesExecuted < 3) {
         query()
@@ -78,12 +78,12 @@
       }
     }
 
-    function facetEngineCallbackFacets(facetGroupsJson) {
+    facetEngine.callbackFacets = function(facetGroupsJson) {
       timing['callback facets (' + recordCountTiming + ')'] = new Date().getTime() - t
       // console.log(facetGroupsJson)
     }
 
-    function facetEngineCallbackRecords(idsJson) {
+    facetEngine.callbackRecords = function(idsJson) {
       // timing['callback records (' + recordCountTiming + ')'] = new Date().getTime() - t
       recordCountTiming = JSON.parse(idsJson).length
       console.log(JSON.parse(idsJson).length)

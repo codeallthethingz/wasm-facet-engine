@@ -1,4 +1,5 @@
 let facetEngineGo, facetEngineMod, facetEngineInst;
+let facetEngine = {}
 
 function facetEngineLoad(facetEngineWasmLocation, cb) {
   let wasmLocation = "facet-engine.wasm";
@@ -42,6 +43,8 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
     );
   }
 
+
+  global.facetEngine = facetEngine;
   // Map web browser API and Node.js API to a single common API (preferring web standards over Node.js API).
   const isNodeJS = global.process && global.process.title === "node";
   if (isNodeJS) {
@@ -66,6 +69,7 @@ function facetEngineLoad(facetEngineWasmLocation, cb) {
     global.TextEncoder = util.TextEncoder;
     global.TextDecoder = util.TextDecoder;
   } else {
+    console.log("here not node")
     let outputBuf = "";
     global.fs = {
       constants: {
