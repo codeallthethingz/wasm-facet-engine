@@ -1,0 +1,23 @@
+{
+  "name": "wasm-performance",
+  "version": "1.0.0",
+  "description": "performance testing",
+  "scripts": {
+    "dev": "browser-refresh server.js"
+  },
+  "author": "codeallthethingz",
+  "license": "MIT",
+  "dependencies": {
+    "@realitypackagemanager/wasm-facet-engine": "0.0.13"
+  },
+  "devDependencies": {
+    "marko": "^4.17.5",
+    "@lasso/marko-taglib": "^1.0.15",
+    "lasso": "^3.3.0",
+    "lasso-marko": "^2.4.7",
+    "express": "^4.17.1",
+    "browser-refresh-taglib": "^1.1.0",
+    "browser-refresh": "^1.7.3",
+    "marko-starter": "^2.0.4"
+  }
+}

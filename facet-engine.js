@@ -1,11 +1,8 @@
 let facetEngineGo, facetEngineMod, facetEngineInst;
 let facetEngine = {}
 
-facetEngine.load = function(facetEngineWasmLocation, cb) {
+facetEngine.load = function (cb) {
   let wasmLocation = "facet-engine.wasm";
-  if (facetEngineWasmLocation) {
-    wasmLocation = facetEngineWasmLocation;
-  }
   if (!WebAssembly.instantiateStreaming) {
     // polyfill
     WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -20,7 +17,7 @@ facetEngine.load = function(facetEngineWasmLocation, cb) {
       facetEngineMod = result.module;
       facetEngineInst = result.instance;
       facetEngineGo.run(facetEngineInst);
-      facetEngineInst =  WebAssembly.instantiate(facetEngineMod, facetEngineGo.importObject);
+      facetEngineInst = WebAssembly.instantiate(facetEngineMod, facetEngineGo.importObject);
       cb()
     })
     .catch(err => {
@@ -30,7 +27,7 @@ facetEngine.load = function(facetEngineWasmLocation, cb) {
 }
 
 // -- wasm-exec.js
-facetEngine.initialize = function() {
+facetEngine.initialize = function () {
   if (typeof global !== "undefined") {
     // global already exists
   } else if (typeof window !== "undefined") {
@@ -47,70 +44,47 @@ facetEngine.initialize = function() {
   global.facetEngine = facetEngine;
   // Map web browser API and Node.js API to a single common API (preferring web standards over Node.js API).
   const isNodeJS = global.process && global.process.title === "node";
-  if (isNodeJS) {
-    global.require = require;
-    global.fs = require("fs");
-
-    const nodeCrypto = require("crypto");
-    global.crypto = {
-      getRandomValues(b) {
-        nodeCrypto.randomFillSync(b);
+  let outputBuf = "";
+  global.fs = {
+    constants: {
+      O_WRONLY: -1,
+      O_RDWR: -1,
+      O_CREAT: -1,
+      O_TRUNC: -1,
+      O_APPEND: -1,
+      O_EXCL: -1
+    }, // unused
+    writeSync(fd, buf) {
+      outputBuf += decoder.decode(buf);
+      const nl = outputBuf.lastIndexOf("\n");
+      if (nl !== -1) {
+        console.log(outputBuf.substr(0, nl));
+        outputBuf = outputBuf.substr(nl + 1);
       }
-    };
-
-    global.performance = {
-      now() {
-        const [sec, nsec] = process.hrtime();
-        return sec * 1000 + nsec / 1000000;
+      return buf.length;
+    },
+    write(fd, buf, offset, length, position, callback) {
+      if (offset !== 0 || length !== buf.length || position !== null) {
+        throw new Error("not implemented");
       }
-    };
+      const n = this.writeSync(fd, buf);
+      callback(null, n);
+    },
+    open(path, flags, mode, callback) {
+      const err = new Error("not implemented");
+      err.code = "ENOSYS";
+      callback(err);
+    },
+    read(fd, buffer, offset, length, position, callback) {
+      const err = new Error("not implemented");
+      err.code = "ENOSYS";
+      callback(err);
+    },
+    fsync(fd, callback) {
+      callback(null);
+    }
+  };
 
-    const util = require("util");
-    global.TextEncoder = util.TextEncoder;
-    global.TextDecoder = util.TextDecoder;
-  } else {
-    console.log("here not node")
-    let outputBuf = "";
-    global.fs = {
-      constants: {
-        O_WRONLY: -1,
-        O_RDWR: -1,
-        O_CREAT: -1,
-        O_TRUNC: -1,
-        O_APPEND: -1,
-        O_EXCL: -1
-      }, // unused
-      writeSync(fd, buf) {
-        outputBuf += decoder.decode(buf);
-        const nl = outputBuf.lastIndexOf("\n");
-        if (nl !== -1) {
-          console.log(outputBuf.substr(0, nl));
-          outputBuf = outputBuf.substr(nl + 1);
-        }
-        return buf.length;
-      },
-      write(fd, buf, offset, length, position, callback) {
-        if (offset !== 0 || length !== buf.length || position !== null) {
-          throw new Error("not implemented");
-        }
-        const n = this.writeSync(fd, buf);
-        callback(null, n);
-      },
-      open(path, flags, mode, callback) {
-        const err = new Error("not implemented");
-        err.code = "ENOSYS";
-        callback(err);
-      },
-      read(fd, buffer, offset, length, position, callback) {
-        const err = new Error("not implemented");
-        err.code = "ENOSYS";
-        callback(err);
-      },
-      fsync(fd, callback) {
-        callback(null);
-      }
-    };
-  }
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8");
@@ -496,7 +470,7 @@ facetEngine.initialize = function() {
 
     _makeFuncWrapper(id) {
       const go = this;
-      return function() {
+      return function () {
         const event = { id: id, this: this, args: arguments };
         go._pendingEvent = event;
         go._resume();
@@ -508,3 +482,5 @@ facetEngine.initialize = function() {
 }
 
 facetEngine.initialize();
+
+exports.default = facetEngine;

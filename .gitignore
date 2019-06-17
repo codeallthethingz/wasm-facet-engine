@@ -15,3 +15,9 @@ coverage.txt
 *.wasm
 .idea
 wasm-facet-engine
+node_modules
+.cache
+dist
+index.js
+static/
+*.marko.js

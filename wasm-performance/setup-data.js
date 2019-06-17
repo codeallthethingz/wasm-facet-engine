@@ -1,3 +1,5 @@
+import facetEngine from "@realitypackagemanager/wasm-facet-engine"
+
 function createRecords(recordCount) {
   let records = [];
   let metrics = createMetrics()
@@ -18,7 +20,7 @@ function createRecords(recordCount) {
 }
 
 function replaceX(metric) {
-  newMetric = {
+  let newMetric = {
     metricName: metric.metricName,
     measurements: {}
   };
@@ -115,4 +117,65 @@ function createMetrics() {
     }
   })
   return metrics
+}
+
+let recordCount = 10;
+
+let queriesExecuted = 0
+let t
+let timing = {}
+let recordCountTiming = recordCount
+
+let records = createRecords(recordCount)
+
+facetEngine.load(function () {
+  let config = {
+    arrayDotNotation: "measurements",
+    nameFieldDotNotation: "measurementName",
+    nameMetaDotNotation: "metrics.metricName",
+    valueMapDotNotation: "metrics.measurements",
+  }
+  console.log('init starting')
+  t = new Date().getTime()
+  facetEngine.initializeObjects(JSON.stringify(config), JSON.stringify(records), callbackFacets)
+  timing['initialization'] = new Date().getTime() - t
+  query()
+})
+
+function randomList(list) {
+  return list[parseInt(Math.random() * list.length)];
+}
+function randomMap(map) {
+  let keys = Object.keys(map)
+  let key = randomList(keys)
+  return map[key]
+}
+function randomKey(map) {
+  let keys = Object.keys(map)
+  return randomList(keys)
+}
+function query() {
+  let record = randomList(records)
+  let measurement = randomList(record.measurements)
+  let measurementKey = randomKey(measurement.metrics.measurements)
+  let groupName = measurement.measurementName + ' (' + measurement.metrics.metricName + ')'
+  let facetName = measurementKey
+  t = new Date().getTime()
+  facetEngine.addFilter(groupName, facetName, true, 0, false, 90)
+  facetEngine.query(callbackRecords, callbackFacets)
+  queriesExecuted++
+  if (queriesExecuted < 3) {
+    query()
+  } else {
+    console.log(timing)
+  }
+}
+
+function callbackFacets(facetGroupsJson) {
+  timing['callback facets (' + recordCountTiming + ')'] = new Date().getTime() - t
+}
+
+function callbackRecords(idsJson) {
+  let recordCountTiming = JSON.parse(idsJson).length
+  console.log(JSON.parse(idsJson).length)
 }

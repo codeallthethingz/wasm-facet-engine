@@ -1,0 +1,35 @@
+{
+  "name": "@realitypackagemanager/wasm-facet-engine",
+  "version": "0.0.13",
+  "description": "A piece of code designed to take a small set of json records and create facets based on sub parts of those records. This is for a small number of records as it is intended to be used as a webassembly on a client browser.",
+  "main": "index.js",
+  "scripts": {
+    "prepublish": "make wasm && node node_modules/babel-cli/bin/babel.js --presets=es2015 facet-engine.js > index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeallthethingz/wasm-facet-engine.git"
+  },
+  "files": [
+    "*.md",
+    "facet-engine.wasm",
+    "index.js",
+    "LICENSE"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codeallthethingz/wasm-facet-engine/issues"
+  },
+  "homepage": "https://github.com/codeallthethingz/wasm-facet-engine#readme",
+  "devDependencies": {
+    "@babel/core": "^7.4.5",
+    "@babel/plugin-transform-runtime": "^7.4.4",
+    "@babel/preset-es2015": "^7.0.0-beta.53",
+    "@babel/runtime-corejs2": "^7.4.5",
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1"
+  }
+}
