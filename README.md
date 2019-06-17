@@ -7,7 +7,7 @@ The advantage of this approach is you can have very rich faceting without explod
 
 The "small number" has yet to be determined, but performance metrics will be posted here when we know more.
 
-**0.0.1 performance**
+**0.0.13 performance**
 
 |Record Count|Initialization|Search
 |--------:|----------:|--------:
@@ -19,25 +19,30 @@ The "small number" has yet to be determined, but performance metrics will be pos
 
 ## Installation
 
-*The bundling is not yet implemented, you'll need to figure everything out from source currently*
+*
 
 Add the js bundle to your application
 
 ```bash
-npm i @codeallthethingz/facet-engine
+npm i @realitypackagemanager/wasm-facet-engine
 ```
 
-Download the `facet-engine.wasm` file from https://github.com/codeallthethingz/wasm-facet-engine/releases
+Copy the `facet-engine.wasm` file from `node_modules/@realitypackagemanager/wasm-facet-engine` into the root of your web-application.
 
 Ensure that this wasm file is served with the mime-type `application/wasm` or it will not work.
 
-This will add the following functions into the global scope
-- `facetEngineLoad(facetEngineWasmLocation)` - load the wasm file into memory. Default: `facet-engine.wasm`
-- `facetEngineInitializeObjects(stringifiedConfiguration, stringifiedObjectArray)` - send in the records that you're going to work with and the configuration about which data elements are to be used as facets. Facets are sent back to `facetEngineCallbackFacets(stringifiedFacets)`
-- `facetEngineAddFilter('facetGroupName', 'facetName', true, 7, false, 12)` - add a filter to the state.  The boolean parameters specify that the range is (true = inclusive) or (false = exclusive)
-- `facetEngineRemoveFilter(filterName)` - remove a filter by name
-- `facetEngineClearFilters()` - remove all filters
-- `facetEngineQuery()` - return a json array of id's that match all the set filters.  Results are sent to a callback invocation of a function you should add called `facetEngineCallbackResults(stringifiedIdArray)`.  Facets are sent back to `facetEngineCallbackFacets(stringifiedFacets)`
+Import the facetEngine into your application
+
+```node
+import facetEngine from '@realitypackagemanager/wasm-facet-engine'
+```
+
+- `facetEngineLoad(callbackFunction)` - load the wasm file from your webserver. 
+- `facetEngine.initializeObjects(stringifiedConfiguration, stringifiedObjectArray, callbackFacets)` - send in the records that you're going to work with and the configuration about which data elements are to be used as facets. Facets are sent back to the callback supplied
+- `facetEngine.addFilter('facetGroupName', 'facetName', true, 7, false, 12)` - add a filter to the state.  The boolean parameters specify that the range is (true = inclusive) or (false = exclusive)
+- `facetEngine.removeFilter(filterName)` - remove a filter by name
+- `facetEngine.clearFilters()` - remove all filters
+- `facetEngine.query(callbackRecords, callbackFacets)` - query the records for the current filters.  Results are sent to the supplied callback invocations `callbackFacets(stringifiedIdArray)`.  Facets are sent back to `callbackRecords(stringifiedFacets)`
 
 ## Usage
 
@@ -79,7 +84,9 @@ let jsonData = [
 Load the facet engine
 
 ```javascript
-facetEngineLoad()
+facetEngine.load(function(){
+  console.log('loaded!')
+})
 ```
 
 Initialize the engine with the list of objects to create facets for and the configuration of which data elements to extract for facets.
@@ -89,22 +96,24 @@ let config = {
   arrayDotNotation:     "measurements",
   nameFieldDotNotation: "measurementName",
   nameMetaDotNotation:  "metrics.metricName",
-  valueMapDotNotation:  "metrics.measurements",
+  valueMapDotNotation:  "metrics.measurements"
 }
 // this will call back to facetEngineCallbackFacets(stringifiedFacets)
-facetEngineInitializeObjects(JSON.stringify(config), JSON.stringify(jsonData)) 
+facetEngine.initializeObjects(JSON.stringify(config), JSON.stringify(jsonData), function(facets){
+  console.log('got facets', facets)
+})
 ```
 
 Add a filter and run it
 
 ```javascript
-facetEngineAddFilter("area (cube)", "side", true, 8.0, false, 12.0)
-facetEngineQuery()
-function facetEngineCallbackResults(stringifiedIdArray) {
+facetEngine.addFilter("area (cube)", "side", true, 8.0, false, 12.0)
+facetEngine.query(callbackResults, callbackFacets)
+function callbackResults(stringifiedIdArray) {
   listOfIds = JSON.parse(stringifiedIdArray)
   // Do something with the ids
 }
-function facetEngineCallbackFacets(stringifiedFacets) {
+function callbackFacets(stringifiedFacets) {
   facets = JSON.parse(stringifiedFacets)
   // Do something with the facets
 }
