@@ -1,0 +1,188 @@
+import facetEngine from "@realitypackagemanager/wasm-facet-engine"
+
+class {
+  onCreate() {
+    this.recordCount = 1000;
+
+    this.queriesExecuted = 0;
+    this.timing = {}
+    this.t = 0;
+    this.recordCountTiming = this.recordCount;
+    this.records = this.createRecords(this.recordCount);
+  }
+  onMount() {
+    self = this;
+    facetEngine.load(function() {
+      let config = {
+        arrayDotNotation: "measurements",
+        nameFieldDotNotation: "measurementName",
+        nameMetaDotNotation: "metrics.metricName",
+        valueMapDotNotation: "metrics.measurements"
+      };
+      console.log("init starting:", self.records);
+      self.t = new Date().getTime();
+      facetEngine.initializeObjects(JSON.stringify(config), JSON.stringify(self.records), self.callbackFacets);
+      self.timing["initialization"] = new Date().getTime() - self.t;
+      self.query(self);
+    });
+  }
+  createRecords(recordCount) {
+    let records = [];
+    let metrics = this.createMetrics();
+    for (let i = 0; i < recordCount; i++) {
+      let record = {
+        id: "record " + (i + 1),
+        measurements: []
+      };
+      for (let k = 0; k < parseInt(Math.random() * 5) + 1; k++) {
+        record.measurements.push({
+          measurementName: "a" + parseInt(Math.random() * 10),
+          metrics: this.replaceX(metrics[parseInt(Math.random() * metrics.length)])
+        });
+      }
+      records.push(record);
+    }
+    return records;
+  }
+
+  replaceX(metric) {
+    let newMetric = {
+      metricName: metric.metricName,
+      measurements: {}
+    };
+    Object.keys(metric.measurements).forEach(function(key) {
+      newMetric.measurements[key] = parseInt(Math.random() * 100);
+    });
+    return newMetric;
+  }
+  createMetrics() {
+    let metrics = [];
+    metrics.push({
+      metricName: "cube",
+      measurements: {
+        side: "X"
+      }
+    });
+    metrics.push({
+      metricName: "screwthread",
+      measurements: {
+        height: "X",
+        diameter: "X",
+        pitch: "X"
+      }
+    });
+    metrics.push({
+      metricName: "sphere",
+      measurements: {
+        diameter: "X"
+      }
+    });
+    metrics.push({
+      metricName: "cuboid",
+      measurements: {
+        width: "X",
+        height: "X",
+        length: "X"
+      }
+    });
+    metrics.push({
+      metricName: "cylinder",
+      measurements: {
+        diameter: "X",
+        height: "X"
+      }
+    });
+    metrics.push({
+      metricName: "hexcube",
+      measurements: {
+        diameter: "X",
+        height: "X"
+      }
+    });
+    metrics.push({
+      metricName: "pentcube",
+      measurements: {
+        diameter: "X",
+        height: "X"
+      }
+    });
+    metrics.push({
+      metricName: "polygon",
+      measurements: {
+        diameter: "X",
+        height: "X",
+        sidecount: "X"
+      }
+    });
+    metrics.push({
+      metricName: "oval-cylinder",
+      measurements: {
+        "radius-major": "X",
+        "radius-minor": "X",
+        height: "X"
+      }
+    });
+    metrics.push({
+      metricName: "tricube",
+      measurements: {
+        "width-hypotenuse": "X",
+        "width-opposite": "X",
+        "width-adjacent": "X",
+        height: "X"
+      }
+    });
+    metrics.push({
+      metricName: "clip",
+      measurements: {
+        lip: "X",
+        "lip-height": "X",
+        "lip-width": "X",
+        height: "X",
+        width: "X",
+        length: "X"
+      }
+    });
+    return metrics;
+  }
+
+  randomList(list) {
+    return list[parseInt(Math.random() * list.length)];
+  }
+  randomMap(map) {
+    let keys = Object.keys(map);
+    let key = this.randomList(keys);
+    return map[key];
+  }
+  randomKey(map) {
+    let keys = Object.keys(map);
+    return this.randomList(keys);
+  }
+  query() {
+    let record = self.randomList(self.records);
+    let measurement = self.randomList(record.measurements);
+    let measurementKey = self.randomKey(measurement.metrics.measurements);
+    let groupName = measurement.measurementName + " (" + measurement.metrics.metricName + ")";
+    let facetName = measurementKey;
+    self.t = new Date().getTime();
+    facetEngine.addFilter(groupName, facetName, true, 0, false, 90);
+    facetEngine.query(self.callbackRecords, self.callbackFacets);
+    self.queriesExecuted++;
+    if (self.queriesExecuted < 3) {
+      self.query();
+    } else {
+      console.log(self.timing);
+    }
+  }
+
+  callbackFacets(facetGroupsJson) {
+    console.log(JSON.parse(facetGroupsJson));
+    self.timing["callback facets (" + self.recordCountTiming + ")"] = new Date().getTime() - self.t;
+  }
+
+  callbackRecords(idsJson) {
+    let recordCountTiming = JSON.parse(idsJson).length;
+    console.log(JSON.parse(idsJson));
+  }
+}
+
+<div>perfermance</div>
