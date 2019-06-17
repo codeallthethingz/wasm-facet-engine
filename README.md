@@ -98,7 +98,7 @@ let config = {
   nameMetaDotNotation:  "metrics.metricName",
   valueMapDotNotation:  "metrics.measurements"
 }
-// this will call back to facetEngineCallbackFacets(stringifiedFacets)
+
 facetEngine.initializeObjects(JSON.stringify(config), JSON.stringify(jsonData), function(facets){
   console.log('got facets', facets)
 })
