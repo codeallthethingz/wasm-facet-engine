@@ -7,7 +7,7 @@ import (
 
 // Set simple set type
 type Set struct {
-	list map[string]struct{} //empty structs occupy 0 memory
+	list map[string]struct{}
 }
 
 // Len return the length of the set
@@ -54,7 +54,7 @@ func (s *Set) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON Set is optimized for memory usage and lookup but is really a list of unique elements.
 func (s *Set) UnmarshalJSON(j []byte) error {
-	list := []string{}
+	var list []string
 	err := json.Unmarshal(j, &list)
 	if err != nil {
 		return err

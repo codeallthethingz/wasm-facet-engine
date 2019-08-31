@@ -7,7 +7,7 @@ The advantage of this approach is you can have very rich faceting without explod
 
 The "small number" has yet to be determined, but performance metrics will be posted here when we know more.
 
-**0.0.13 performance**
+**0.0.14 performance**
 
 |Record Count|Initialization|Search
 |--------:|----------:|--------:

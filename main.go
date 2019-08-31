@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-
 	"github.com/gopherjs/gopherwasm/js"
 )
 
@@ -23,11 +22,12 @@ func registerCallbacks() {
 }
 
 // JSClearFilters remove all the filters
+//noinspection GoUnusedParameter
 func JSClearFilters(args []js.Value) {
 	facetEngine.ClearFilters()
 }
 
-// JSAddFilter addes a filter to the query object
+// JSAddFilter adds a filter to the query object
 func JSAddFilter(args []js.Value) {
 	facetGroupName := args[0].String()
 	facetName := args[1].String()
@@ -53,7 +53,7 @@ func addFilter(facetGroupName string, facetName string, inclusiveMin bool, min f
 	return facetEngine.AddFilter(facetGroupName, facetName, minRange, maxRange)
 }
 
-// JSQuery wasm interface to query the facet groups
+// JSQuery WASM interface to query the facet groups
 func JSQuery(args []js.Value) {
 	ids, facetGroups, err := query()
 	if err != nil {
@@ -68,7 +68,7 @@ func query() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	idsByets, err := json.Marshal(ids)
+	idsBytes, err := json.Marshal(ids)
 	if err != nil {
 		return "", "", err
 	}
@@ -76,7 +76,7 @@ func query() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	return string(idsByets), string(facetGroupBytes), nil
+	return string(idsBytes), string(facetGroupBytes), nil
 }
 
 // JSInitializeObjects wasm interface to take the data and parse out the facets

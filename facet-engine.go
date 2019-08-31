@@ -100,7 +100,7 @@ func (f *FacetEngine) AddFilter(facetGroupName string, facetName string, min Ran
 	return nil
 }
 
-// Range repnesents min and max bounds inclusive or exclusive
+// Range represents min and max bounds inclusive or exclusive
 type Range interface {
 	IsInclusive() bool
 	Value() float64

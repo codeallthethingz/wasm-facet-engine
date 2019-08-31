@@ -1,6 +1,6 @@
 {
   "name": "@realitypackagemanager/wasm-facet-engine",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "A piece of code designed to take a small set of json records and create facets based on sub parts of those records. This is for a small number of records as it is intended to be used as a webassembly on a client browser.",
   "main": "index.js",
   "scripts": {
