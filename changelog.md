@@ -1,6 +1,6 @@
 # Changelog
 
-- 0.0.1 basic implementation.
+- 0.0.14 basic implementation.
 
   **Performance**
   Each record has between 1 and 5 groupings of metrics, and each grouping having between 1 and 5 metrics. Each metric being a floating point number (cast to an int and held as a string) between 0 and 99.  Each search was done on 1 metric limiting the values to between 0 inclusive and 90 exclusive.
