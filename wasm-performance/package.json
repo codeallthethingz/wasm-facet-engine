@@ -15,7 +15,7 @@
     "@lasso/marko-taglib": "^1.0.15",
     "lasso": "^3.3.0",
     "lasso-marko": "^2.4.7",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "browser-refresh-taglib": "^1.1.0",
     "browser-refresh": "^1.7.3",
     "marko-starter": "^2.0.4"
